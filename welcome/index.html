@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <base href="../">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>LDS Staff · Set up your account</title>
+    <meta name="referrer" content="no-referrer">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="auth-card">
+      <img src="assets/lds-logo.png" alt="LDS Air &amp; Electrical" width="192" height="48">
+      <h1>Welcome to LDS</h1>
+      <p>Choose a password and optionally add your phone number to finish setting up your staff account.</p>
+      <p id="welcomeMessage" role="status" aria-live="polite">Checking your invitation...</p>
+      <form id="welcomeForm" class="staff-form" hidden>
+        <label for="welcomeEmail">Staff email</label>
+        <input id="welcomeEmail" name="username" type="email" autocomplete="username" readonly>
+        <label for="phone">Phone number (optional)</label>
+        <input id="phone" name="phone" type="tel" autocomplete="tel" maxlength="40">
+        <label for="newPassword">Create password</label>
+        <input id="newPassword" name="password" type="password" autocomplete="new-password" minlength="12" required>
+        <small>Use at least 12 characters.</small>
+        <label for="confirmPassword">Confirm password</label>
+        <input id="confirmPassword" name="password-confirmation" type="password" autocomplete="new-password" minlength="12" required>
+        <button class="primary" id="completeSetup" type="submit">Save details and continue</button>
+      </form>
+      <p><a href="index.html">Back to sign in</a></p>
+    </main>
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="welcome.js"></script>
+  </body>
+</html>

@@ -22,6 +22,16 @@
     panel.hidden = !!user;
     sheet.hidden = !user;
     account.hidden = !user;
+<<<<<<< Updated upstream
+=======
+    if (user && dashboardPage) document.title = 'LDS Staff | Admin dashboard';
+    closeAccountMenu();
+    const staffName = user ? (user.user_metadata?.full_name?.trim() || 'Staff') : '';
+    document.querySelectorAll('[data-staff-name]').forEach(element => {
+      element.textContent = staffName;
+      element.title = staffName;
+    });
+>>>>>>> Stashed changes
     document.querySelector('#staffEmail').textContent = user?.email || '';
     password.value = '';
     document.dispatchEvent(new CustomEvent('staff-session', { detail: user }));
