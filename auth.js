@@ -44,13 +44,20 @@
 
   function showSession(session) {
     const user = session?.user || null;
+    // Removing a submitted login form lets password managers detect success.
+    // Keep its field values intact until the next signed-out state.
+    if (user) {
+      form.remove();
+    } else if (!form.isConnected) {
+      password.value = '';
+      panel.insertBefore(form, message);
+    }
     document.title = user ? 'LDS Staff · Timesheet' : 'LDS Staff · Sign in';
     panel.hidden = !!user;
     sheet.hidden = !user;
     account.hidden = !user;
     closeAccountMenu();
     document.querySelector('#staffEmail').textContent = user?.email || '';
-    password.value = '';
     document.dispatchEvent(new CustomEvent('staff-session', { detail: user }));
   }
 

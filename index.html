@@ -65,9 +65,9 @@
       <div class="eyebrow">LDS STAFF PORTAL</div>
       <h1 id="authTitle">Staff sign in</h1>
       <p>Sign in with your staff email to open your timesheet.</p>
-      <form id="loginForm">
+      <form id="loginForm" name="staff-sign-in" method="post" autocomplete="on">
         <label for="staffLoginEmail">Email address</label>
-        <input id="staffLoginEmail" name="email" type="email" autocomplete="username" required>
+        <input id="staffLoginEmail" name="username" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" required>
         <label for="staffPassword">Password</label>
         <input id="staffPassword" name="password" type="password" autocomplete="current-password" required>
         <button class="primary" id="loginButton" type="submit" disabled>Sign in</button>
