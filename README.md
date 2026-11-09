@@ -13,7 +13,53 @@ Static staff timesheet with Supabase Auth. Serve this folder using an HTTP serve
 
 No database tables or SQL migrations are required for login. Sessions persist using the Supabase client and sign out applies to the current browser.
 
-## Timesheet storage
+## Admin and staff routing
+
+Staff accounts open `index.html`. Accounts with `app_metadata.role` set to `admin` open `dashboard/`. The static host must serve `dashboard/index.html` for `/dashboard/` (and ideally redirect `/dashboard` to `/dashboard/`). Deploy the dashboard folder alongside the other files. Its relative base URL also supports hosting the app under a subdirectory.
+
+To promote an existing account, run this in the **Supabase dashboard SQL Editor**, replacing the email with the intended administrator's email:
+
+```sql
+update auth.users
+set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
+  || '{"role":"admin"}'::jsonb
+where email = 'your-admin@example.com'
+returning id, email, raw_app_meta_data;
+```
+
+Confirm the returned email is correct. Sign out and back in to verify the admin redirect. To demote the account, run the same statement using `{"role":"staff"}` instead. Accounts without the custom role default to staff. Do not change the built-in Supabase user `role` (`authenticated`), or use editable `user_metadata` for admin permissions.
+
+Role checks fetch the current user from Supabase before showing either workspace. Test an admin login, a staff login, a staff visit directly to `/dashboard/`, and dashboard reload/sign out. Login email links can still return to the existing configured staff page, which routes admins to the dashboard after verifying their role.
+
+The dashboard's staff list and invitations use an Edge Function that checks admin permissions on every request. Browser redirects do not enforce database permissions: future shared timesheet queries must enforce authorization through RLS or server checks. Never expose a service-role key in this app.
+
+## Staff invitations and onboarding
+
+The admin dashboard lists staff accounts above the timesheet section. **Add staff** sends Supabase's standard invitation email. Its link opens `welcome/`, where staff enter their full name, optional phone number and a password (at least 12 characters). Details are stored in their Auth user metadata. Admin permissions remain in server-controlled app metadata.
+
+### Deploy the required Edge Function
+
+1. Deploy all site files, including `dashboard/`, `welcome/`, `dashboard.js` and `welcome.js`.
+2. In Supabase **Edge Functions > Secrets**, add `APP_URL` with your actual app base URL, for example `https://staff.ldsairandelectrical.com.au/`. If hosted under a subdirectory, include that path and a trailing slash. This server setting controls where invitations send users.
+3. Create and deploy an Edge Function named **staff-admin** using `supabase/functions/staff-admin/index.ts`. The hosted runtime supplies `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; never copy the service-role key into browser files.
+4. Disable the function's gateway **Verify JWT** / legacy JWT verification option. The function verifies the bearer token itself with Supabase Auth and checks `app_metadata.role === 'admin'` for every request. This supports projects using the newer signing keys. CLI deployment reads this setting from `supabase/config.toml`.
+5. Under **Authentication > URL Configuration > Redirect URLs**, add the exact welcome URL, for example `https://staff.ldsairandelectrical.com.au/welcome/`. Keep the existing staff URLs too.
+6. Configure production SMTP under Authentication. Keep the Invite user email template's confirmation link (`{{ .ConfirmationURL }}`), so Supabase verifies the invitation before redirecting to the welcome page.
+
+If using the Supabase CLI from a machine where it is installed:
+
+```powershell
+supabase login
+supabase link --project-ref YOUR_PROJECT_REF
+supabase secrets set APP_URL=https://staff.ldsairandelectrical.com.au/
+supabase functions deploy staff-admin
+```
+
+Invitations are not sent automatically by deploying this code. To test, sign in as an admin, invite a new test email, open its invitation in a private browser, complete the details, then refresh the admin staff list. Existing accounts should use normal sign in; the Add staff flow is for new users. Verify a staff token receives HTTP 403 from the function and an unauthenticated request receives HTTP 401. Do not use the Supabase SQL editor to insert Auth users manually.
+
+The staff list includes all Auth accounts in the dedicated staff project, including administrators, with pagination. The timesheets section remains informational until cloud timesheet storage is added. Staff profile metadata is editable by that staff member and must never grant permissions.
+
+## Local timesheet storage
 
 Timesheets still save only in this browser, under a separate local-storage key for each Supabase user ID. They do not sync to Supabase or between devices. Signing out clears the visible timesheet but retains that staff member's browser copy for their next login.
 
