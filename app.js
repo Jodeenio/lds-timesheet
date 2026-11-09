@@ -1,17 +1,30 @@
+(() => {
 const $ = s => document.querySelector(s),
   T = TempoTime;
 
 let data = { days: {} };
 let storageError = false;
+let staffId = null;
+const storageKey = () => `lds-weekly-v1:${staffId}`;
 
-try {
-  const saved = JSON.parse(localStorage.getItem('tempo-weekly-v1'));
-  if (saved && saved.days && typeof saved.days === 'object' && !Array.isArray(saved.days)) {
-    data = saved;
+document.addEventListener('staff-session', event => {
+  const nextId = event.detail?.id || null;
+  if (nextId === staffId) return;
+  staffId = nextId;
+  data = { days: {} };
+  storageError = false;
+  week = T.monday(new Date());
+  if (staffId) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(storageKey()));
+      if (saved?.days && typeof saved.days === 'object' && !Array.isArray(saved.days)) data = saved;
+    } catch {
+      storageError = true;
+    }
   }
-} catch {
-  storageError = true;
-}
+  $('#saveStatus').textContent = storageError ? 'Could not load saved timesheet' : 'Saved on this device';
+  render();
+});
 
 let week = T.monday(new Date());
 const today = T.key(new Date());
@@ -28,8 +41,9 @@ function days() {
 }
 
 function persist() {
+  if (!staffId) return false;
   try {
-    localStorage.setItem('tempo-weekly-v1', JSON.stringify(data));
+    localStorage.setItem(storageKey(), JSON.stringify(data));
     storageError = false;
     $('#saveStatus').textContent = 'Saved on this device';
     return true;
@@ -276,30 +290,4 @@ $('#export').onclick = () => {
   ], `tempo-week-${T.key(week)}.csv`);
 };
 
-try {
-  const legacy = JSON.parse(localStorage.getItem('tempo-v1'));
-  if (legacy?.entries?.length || legacy?.running) {
-    $('#legacy').hidden = false;
-    $('#exportLegacy').onclick = () => {
-      const entries = [...(legacy.entries || [])];
-      if (legacy.running) {
-        entries.push({
-          ...legacy.running,
-          seconds: Math.max(0, Math.floor((Date.now() - legacy.running.at) / 1000)),
-          description: legacy.running.description + ' (previous timer snapshot)'
-        });
-      }
-      download([
-        ['Date', 'Description', 'Project', 'Seconds'],
-        ...entries.map(e => [
-          T.key(new Date(e.at)),
-          e.description,
-          (legacy.projects || []).find(p => p.id === e.project)?.name || '',
-          e.seconds
-        ])
-      ], 'tempo-earlier-entries.csv');
-    };
-  }
-} catch {}
-
-render();
+})();
