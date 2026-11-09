@@ -1,7 +1,7 @@
 (() => {
   const $ = selector => document.querySelector(selector);
   const dialog = $('#inviteDialog');
-  let client = null, page = 1, request = 0, loading = false;
+  let client = null, page = 1, request = 0, loading = false, removing = false;
 
   async function call(body) {
     const { data, error } = await client.functions.invoke('staff-admin', { body });
@@ -14,7 +14,7 @@
   }
 
   async function loadStaff() {
-    if (!client) return;
+    if (!client || removing) return;
     const current = ++request;
     loading = true;
     $('#staffPrevious').disabled = $('#staffNext').disabled = $('#staffRefresh').disabled = true;
@@ -30,6 +30,42 @@
           cell.textContent = value;
           row.append(cell);
         }
+        const actions = document.createElement('td');
+        if (staff.role !== 'Admin') {
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'outline';
+          remove.textContent = 'Remove';
+          remove.setAttribute('aria-label', `Remove ${staff.name || staff.email}`);
+          remove.addEventListener('click', async () => {
+            if (!client || loading || removing) return;
+            const label = staff.name ? `${staff.name} (${staff.email})` : staff.email;
+            if (!window.confirm(`Permanently remove ${label}? They will no longer be able to sign in. This cannot be undone. Timesheets saved in their browser will remain on that device.`)) return;
+            const current = request;
+            removing = true;
+            $('#staffRows').querySelectorAll('button').forEach(button => { button.disabled = true; });
+            $('#staffPrevious').disabled = $('#staffNext').disabled = $('#staffRefresh').disabled = true;
+            $('#staffMessage').textContent = 'Removing staff...';
+            try {
+              await call({ action: 'remove', userId: staff.id });
+              if (current !== request) return;
+              removing = false;
+              page = 1;
+              await loadStaff();
+            } catch (error) {
+              if (current !== request) return;
+              $('#staffMessage').textContent = error.message;
+              $('#staffRows').querySelectorAll('button').forEach(button => { button.disabled = false; });
+              $('#staffPrevious').disabled = page <= 1;
+              $('#staffNext').disabled = !data.hasMore;
+              $('#staffRefresh').disabled = false;
+            } finally {
+              removing = false;
+            }
+          });
+          actions.append(remove);
+        }
+        row.append(actions);
         $('#staffRows').append(row);
       }
       $('#staffMessage').textContent = data.users.length ? '' : 'No staff accounts found.';
@@ -53,8 +89,8 @@
     $('#staffRows').replaceChildren();
     dialog.close();
   });
-  $('#staffPrevious').onclick = () => { if (!loading && page > 1) { page--; void loadStaff(); } };
-  $('#staffNext').onclick = () => { if (!loading) { page++; void loadStaff(); } };
+  $('#staffPrevious').onclick = () => { if (!loading && !removing && page > 1) { page--; void loadStaff(); } };
+  $('#staffNext').onclick = () => { if (!loading && !removing) { page++; void loadStaff(); } };
   $('#staffRefresh').onclick = () => { void loadStaff(); };
   $('#addStaff').onclick = () => {
     $('#inviteForm').reset();

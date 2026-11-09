@@ -45,6 +45,19 @@ Deno.serve(async (req: Request) => {
         hasMore: page * 50 < data.total,
       });
     }
+    if (body.action === 'remove') {
+      const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+        return reply(400, { error: 'Select a valid staff account.' });
+      }
+      if (userId === user.id) return reply(403, { error: 'You cannot remove your own account.' });
+      const { data: target, error: targetError } = await admin.auth.admin.getUserById(userId);
+      if (targetError || !target.user) return reply(404, { error: 'Staff account could not be found. Refresh the list and try again.' });
+      if (target.user.app_metadata?.role === 'admin') return reply(403, { error: 'Administrator accounts cannot be removed from the staff dashboard.' });
+      const { error: removeError } = await admin.auth.admin.deleteUser(userId);
+      if (removeError) return reply(502, { error: 'Could not remove staff. Try again or check Supabase Auth logs.' });
+      return reply(200, { removed: true });
+    }
     if (body.action === 'invite') {
       const firstName = typeof body.firstName === 'string' ? body.firstName.trim() : '';
       const lastName = typeof body.lastName === 'string' ? body.lastName.trim() : '';

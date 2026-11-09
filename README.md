@@ -15,6 +15,8 @@ No database tables or SQL migrations are required for login. Sessions persist us
 
 ## Admin and staff routing
 
+The dashboard's **Remove** action permanently deletes a staff Auth account after confirmation. Administrator accounts are protected, including the signed-in admin; the server enforces these restrictions. Removing an account does not erase timesheets stored in that person's browser. Deploy the updated `staff-admin` Edge Function alongside the dashboard to enable removal. Verify cancellation leaves the account unchanged, a confirmed removal disappears from the list, and staff or unauthenticated requests cannot remove users.
+
 Staff accounts open `index.html`. Accounts with `app_metadata.role` set to `admin` open `dashboard/`. The static host must serve `dashboard/index.html` for `/dashboard/` (and ideally redirect `/dashboard` to `/dashboard/`). Deploy the dashboard folder alongside the other files. Its relative base URL also supports hosting the app under a subdirectory.
 
 To promote an existing account, run this in the **Supabase dashboard SQL Editor**, replacing the email with the intended administrator's email:
