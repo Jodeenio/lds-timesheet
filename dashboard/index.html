@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <base href="../">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>LDS Staff &middot; Sign in</title>
+    <meta name="description" content="Enter your daily start and end times, one week at a time.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="header.css">
+  </head>
+  <body data-page="dashboard">
+    <div class="lds-header"><nav aria-label="Main navigation"
+          class="fixed left-1/2 top-4 z-[999] w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-gradient-to-r from-gray-900 via-gray-900 to-gray-900 py-4 shadow-md transition-all duration-300"
+        >
+          <div class="mx-auto w-full px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center lg:hidden"><a class="flex items-center" href="https://www.ldsairandelectrical.com.au/index.html"
+                  ><div class="relative h-8 w-32 sm:h-10 sm:w-40">
+                    <img
+                      alt="LDS Air &amp; Electrical"
+                      loading="lazy"
+                      width="128"
+                      height="32"
+                      decoding="async"
+                      data-nimg="1"
+                      class="object-contain brightness-100"
+                      style="color: transparent"
+                      sizes="(max-width: 640px) 128px, 160px"
+                      src="assets/lds-logo.png"
+                    /></div
+                ></a>
+              </div>
+              <div class="hidden shrink-0 lg:block">
+                <a class="flex items-center" href="https://www.staff.ldsairandelectrical.com.au/index.html"
+                  ><div class="relative h-12 w-48">
+                    <img
+                      alt="LDS Air &amp; Electrical"
+                      loading="lazy"
+                      width="192"
+                      height="48"
+                      decoding="async"
+                      data-nimg="1"
+                      class="object-contain brightness-100"
+                      style="color: transparent"
+                      src="assets/lds-logo.png"
+                    /></div
+                ></a>
+              </div>
+              <div class="staff-account" id="staffAccount" hidden>
+                <button class="account-toggle" id="accountToggle" type="button" aria-label="Account options" aria-expanded="false" aria-controls="accountDetails">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+                    <circle cx="12" cy="8" r="4"></circle>
+                    <path d="M4 21v-2a8 8 0 0 1 16 0v2"></path>
+                  </svg>
+                </button>
+                <div class="account-details" id="accountDetails">
+                  <span id="staffEmail"></span>
+                  <span class="saved" id="saveStatus" role="status">Saved on this device</span>
+                  <button class="outline" id="signOut" type="button">Sign out</button>
+                </div>
+              </div>
+            </div>
+          </div></nav></div>
+    <section class="auth-card" id="authPanel" aria-labelledby="authTitle">
+      <div class="eyebrow">LDS STAFF PORTAL</div>
+      <h1 id="authTitle">Staff sign in</h1>
+      <p>Sign in with your staff email to open your timesheet.</p>
+      <form id="loginForm" name="staff-sign-in" method="post" autocomplete="on">
+        <label for="staffLoginEmail">Email address</label>
+        <input id="staffLoginEmail" name="username" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+        <label for="staffPassword">Password</label>
+        <input id="staffPassword" name="password" type="password" autocomplete="current-password" required>
+        <button class="primary" id="loginButton" type="submit" disabled>Sign in</button>
+        <button class="textbutton" id="emailLink" type="button" disabled>Email me a sign-in link</button>
+      </form>
+      <p id="authMessage" role="status" aria-live="polite">Connecting to staff sign in...</p>
+      <p class="auth-help">Need access? Ask your LDS administrator for a staff account.</p>
+    </section>
+    <main id="timesheet" hidden>
+      <div class="heading">
+        <div>
+          <div class="eyebrow">LDS ADMINISTRATION</div>
+          <h1>Admin dashboard</h1>
+          <p>Welcome to your administrator workspace.</p>
+        </div>
+      </div>
+      <section class="sheet" style="padding: 24px" aria-label="Dashboard overview">
+        <h2>Staff timesheets</h2>
+        <p>Staff currently save their timesheets in their own browsers. Central timesheet viewing and staff management are not connected yet.</p>
+      </section>
+      <p id="weekMessage" role="status"></p>
+    </main>
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="auth.js"></script>
+  </body>
+</html>

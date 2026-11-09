@@ -13,7 +13,27 @@ Static staff timesheet with Supabase Auth. Serve this folder using an HTTP serve
 
 No database tables or SQL migrations are required for login. Sessions persist using the Supabase client and sign out applies to the current browser.
 
-## Timesheet storage
+## Admin and staff routing
+
+Staff accounts open `index.html`. Accounts with `app_metadata.role` set to `admin` open `dashboard/`. The static host must serve `dashboard/index.html` for `/dashboard/` (and ideally redirect `/dashboard` to `/dashboard/`). Deploy the dashboard folder alongside the other files. Its relative base URL also supports hosting the app under a subdirectory.
+
+To promote an existing account, run this in the **Supabase dashboard SQL Editor**, replacing the email with the intended administrator's email:
+
+```sql
+update auth.users
+set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb)
+  || '{"role":"admin"}'::jsonb
+where email = 'your-admin@example.com'
+returning id, email, raw_app_meta_data;
+```
+
+Confirm the returned email is correct. Sign out and back in to verify the admin redirect. To demote the account, run the same statement using `{"role":"staff"}` instead. Accounts without the custom role default to staff. Do not change the built-in Supabase user `role` (`authenticated`), or use editable `user_metadata` for admin permissions.
+
+Role checks fetch the current user from Supabase before showing either workspace. Test an admin login, a staff login, a staff visit directly to `/dashboard/`, and dashboard reload/sign out. Login email links can still return to the existing configured staff page, which routes admins to the dashboard after verifying their role.
+
+The dashboard is a basic landing page with no private admin data or administrative API actions yet. Browser redirects do not enforce database permissions: any future shared timesheet queries or admin actions must enforce authorization through RLS or a server/Edge Function. Never expose a service-role key in this app.
+
+## Timesheet storage details
 
 Timesheets still save only in this browser, under a separate local-storage key for each Supabase user ID. They do not sync to Supabase or between devices. Signing out clears the visible timesheet but retains that staff member's browser copy for their next login.
 

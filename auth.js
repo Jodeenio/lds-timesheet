@@ -11,7 +11,11 @@
   const signOut = document.querySelector('#signOut');
   const accountToggle = document.querySelector('#accountToggle');
   const config = window.LDS_SUPABASE;
+  const dashboardPage = document.body.dataset.page === 'dashboard';
+  const staffUrl = new URL('index.html', document.baseURI);
+  const dashboardUrl = new URL('dashboard/', document.baseURI);
   let client;
+  let sessionCheck = 0;
 
   function closeAccountMenu() {
     account.dataset.open = 'false';
@@ -56,9 +60,41 @@
     panel.hidden = !!user;
     sheet.hidden = !user;
     account.hidden = !user;
+    if (user && dashboardPage) document.title = 'LDS Staff | Admin dashboard';
     closeAccountMenu();
     document.querySelector('#staffEmail').textContent = user?.email || '';
     document.dispatchEvent(new CustomEvent('staff-session', { detail: user }));
+  }
+
+  async function resolveSession(session) {
+    const check = ++sessionCheck;
+    sheet.hidden = true;
+    account.hidden = true;
+    if (!session) {
+      if (dashboardPage) {
+        location.replace(staffUrl.href);
+        return;
+      }
+      showSession(null);
+      message.textContent = 'Sign in to access your timesheet.';
+      return;
+    }
+    try {
+      // Fetch the current server-controlled role, rather than trusting local metadata.
+      const { data, error } = await client.auth.getUser(session.access_token);
+      if (check !== sessionCheck) return;
+      if (error || !data.user) throw error || new Error('No user');
+      const admin = data.user.app_metadata?.role === 'admin';
+      if (admin !== dashboardPage) {
+        location.replace(admin ? dashboardUrl.href : staffUrl.href);
+        return;
+      }
+      showSession({ user: data.user });
+    } catch {
+      if (check !== sessionCheck) return;
+      showSession(null);
+      message.textContent = 'Could not verify your account. Check your connection and sign in again.';
+    }
   }
 
   if (!config?.url || !config?.publishableKey) {
@@ -78,8 +114,8 @@
   }
 
   client.auth.onAuthStateChange((event, session) => {
-    showSession(session);
-    if (!session) message.textContent = 'Sign in to access your timesheet.';
+    // Run Auth API requests after the auth event callback releases its lock.
+    setTimeout(() => { void resolveSession(session); }, 0);
   });
 
   form.addEventListener('submit', async event => {
@@ -120,7 +156,7 @@
     try {
       const { error } = await client.auth.signOut({ scope: 'local' });
       if (error) throw error;
-      showSession(null);
+      await resolveSession(null);
       message.textContent = 'You have signed out.';
       email.focus();
     } catch {
@@ -132,7 +168,7 @@
 
   client.auth.getSession().then(({ data, error }) => {
     if (error) throw error;
-    showSession(data.session);
+    void resolveSession(data.session);
     message.textContent = 'Sign in to access your timesheet.';
     busy(false);
   }).catch(() => {
