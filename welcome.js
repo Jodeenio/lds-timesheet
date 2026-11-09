@@ -4,6 +4,13 @@
   const form = $('#welcomeForm');
   const submit = $('#completeSetup');
   const config = window.LDS_SUPABASE;
+  const resetting = new URLSearchParams(location.search).get('mode') === 'reset';
+  if (resetting) {
+    document.title = 'LDS Staff | Reset password';
+    $('#welcomeTitle').textContent = 'Reset your password';
+    $('#welcomeDescription').textContent = 'Choose a new password for your staff account.';
+    submit.textContent = 'Save password and continue';
+  }
   if (!window.supabase || !config?.url || !config?.publishableKey) {
     message.textContent = 'Account setup is unavailable. Contact your LDS administrator.';
     return;

@@ -131,6 +131,39 @@
         </div>
       </form>
     </dialog>
+    <dialog id="staffSettings" class="invite-dialog staff-settings" aria-labelledby="settingsTitle">
+      <div class="heading"><h2 id="settingsTitle">Employee settings</h2><button id="closeSettings" class="outline" type="button">Close</button></div>
+      <div class="settings-tabs" role="tablist" aria-label="Employee settings">
+        <button id="generalTab" role="tab" aria-selected="true" aria-controls="generalPanel" type="button">General</button>
+        <button id="ratesTab" role="tab" aria-selected="false" aria-controls="ratesPanel" tabindex="-1" type="button">Rates</button>
+      </div>
+      <p id="settingsMessage" role="status" aria-live="polite"></p>
+      <fieldset id="settingsFields" disabled>
+        <section id="generalPanel" role="tabpanel" aria-labelledby="generalTab">
+          <form id="generalForm" class="staff-form">
+            <label for="editFirstName">First name</label><input id="editFirstName" maxlength="60" required>
+            <label for="editLastName">Last name</label><input id="editLastName" maxlength="60" required>
+            <label for="editEmail">Email</label><input id="editEmail" type="email" maxlength="254" required>
+            <label for="editPhone">Phone</label><input id="editPhone" type="tel" maxlength="40">
+            <button class="primary" type="submit">Save general details</button>
+          </form>
+          <div class="settings-actions">
+            <button id="resetStaffPassword" class="outline" type="button">Send password reset email</button>
+            <button id="removeStaff" class="outline danger-button" type="button">Remove employee</button>
+          </div>
+        </section>
+        <section id="ratesPanel" role="tabpanel" aria-labelledby="ratesTab" hidden>
+          <p>Hourly rates in AUD. Leave blank if a rate has not been set. Rates are saved for this employee.</p>
+          <form id="ratesForm" class="staff-form">
+            <label for="rateRegular">Regular ($/hour)</label><input id="rateRegular" data-rate="regular" type="number" min="0" max="99999999.99" step="0.01">
+            <label for="rateOvertime">Overtime ($/hour)</label><input id="rateOvertime" data-rate="overtime" type="number" min="0" max="99999999.99" step="0.01">
+            <label for="rateHoliday">Public holiday ($/hour)</label><input id="rateHoliday" data-rate="public_holiday" type="number" min="0" max="99999999.99" step="0.01">
+            <label for="rateHolidayOvertime">Public holiday overtime ($/hour)</label><input id="rateHolidayOvertime" data-rate="public_holiday_overtime" type="number" min="0" max="99999999.99" step="0.01">
+            <button class="primary" type="submit">Save rates</button>
+          </form>
+        </section>
+      </fieldset>
+    </dialog>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="dashboard.js"></script>

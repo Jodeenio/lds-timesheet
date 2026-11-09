@@ -15,6 +15,16 @@ No database tables or SQL migrations are required for login. Sessions persist us
 
 ## Admin and staff routing
 
+### Employee settings and rates
+
+Open the vertical three-dot button on a staff row for **General** and **Rates** settings. General edits first name, last name, email and phone, sends a password reset email to the saved email address, and contains employee removal. Names continue to populate `user_metadata.full_name`; new invitations and edits also save `first_name` and `last_name`. Existing full names are split at the first space when first opened; review multi-part names before saving. Admin email edits apply directly through the Auth admin API, so double-check addresses before saving.
+
+Apply `supabase/migrations/202611090001_staff_rates.sql` in the Supabase SQL Editor (or via your migration deployment process), then redeploy `staff-admin` and the static site. The `staff_rates` table uses the Auth UID as its primary/foreign key and deletes rates when the user is removed. RLS is enabled and browser roles have no access; the admin-verified function handles reads and writes. Each employee can have separate AUD hourly rates for regular, overtime, public holiday and public holiday overtime. Blank means unset; zero is a valid rate. These settings store rates only; timesheet pay calculations are not yet connected.
+
+Add the exact `welcome/?mode=reset` URL under Supabase Auth redirect URLs. Password reset emails open the existing password setup page with reset wording. Email delivery uses Supabase Auth/SMTP.
+
+Before production use, verify edits persist after reopening settings, metadata such as `onboarding_complete` survives edits, reset emails reach the saved address, rates remain separate for two employees, blank and zero rates remain distinct, and staff/anonymous callers cannot read or change rates. Verify protected admin accounts cannot be removed.
+
 The dashboard's **Remove** action permanently deletes a staff Auth account after confirmation. Administrator accounts are protected, including the signed-in admin; the server enforces these restrictions. Removing an account does not erase timesheets stored in that person's browser. Deploy the updated `staff-admin` Edge Function alongside the dashboard to enable removal. Verify cancellation leaves the account unchanged, a confirmed removal disappears from the list, and staff or unauthenticated requests cannot remove users.
 
 Staff accounts open `index.html`. Accounts with `app_metadata.role` set to `admin` open `dashboard/`. The static host must serve `dashboard/index.html` for `/dashboard/` (and ideally redirect `/dashboard` to `/dashboard/`). Deploy the dashboard folder alongside the other files. Its relative base URL also supports hosting the app under a subdirectory.

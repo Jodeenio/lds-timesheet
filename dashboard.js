@@ -2,6 +2,122 @@
   const $ = selector => document.querySelector(selector);
   const dialog = $('#inviteDialog');
   let client = null, page = 1, request = 0, loading = false, removing = false;
+  const settings = $('#staffSettings');
+  let selected = null, settingsRequest = 0, settingsBusy = false, ratesLoaded = false;
+
+  function selectTab(rates) {
+    $('#generalPanel').hidden = rates;
+    $('#ratesPanel').hidden = !rates;
+    for (const [id, active] of [['generalTab', !rates], ['ratesTab', rates]]) {
+      $(`#${id}`).setAttribute('aria-selected', String(active));
+      $(`#${id}`).tabIndex = active ? 0 : -1;
+    }
+    if (rates && !ratesLoaded) void loadRates();
+  }
+  $('#generalTab').onclick = () => selectTab(false);
+  $('#ratesTab').onclick = () => selectTab(true);
+  document.querySelector('.settings-tabs').addEventListener('keydown', event => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const rates = event.key === 'End' || (event.key !== 'Home' && event.target.id === 'generalTab');
+    selectTab(rates);
+    $(rates ? '#ratesTab' : '#generalTab').focus();
+  });
+  $('#closeSettings').onclick = () => { if (!settingsBusy) settings.close(); };
+  settings.addEventListener('cancel', event => { if (settingsBusy) event.preventDefault(); });
+  settings.addEventListener('close', () => { selected = null; ++settingsRequest; });
+
+  async function openSettings(staff) {
+    selected = staff;
+    const current = ++settingsRequest;
+    ratesLoaded = false;
+    $('#generalForm').reset();
+    $('#ratesForm').reset();
+    selectTab(false);
+    $('#settingsTitle').textContent = staff.name || staff.email;
+    $('#settingsFields').disabled = true;
+    $('#settingsMessage').textContent = 'Loading employee details...';
+    settings.showModal();
+    try {
+      const data = await call({ action: 'details', userId: staff.id });
+      if (current !== settingsRequest) return;
+      selected = { ...staff, ...data };
+      for (const key of ['FirstName', 'LastName', 'Email', 'Phone']) {
+        $(`#edit${key}`).value = data[key[0].toLowerCase() + key.slice(1)] || '';
+      }
+      $('#removeStaff').hidden = !data.removable;
+      $('#settingsFields').disabled = false;
+      $('#settingsMessage').textContent = '';
+    } catch (error) {
+      if (current === settingsRequest) $('#settingsMessage').textContent = error.message;
+    }
+  }
+  async function loadRates() {
+    if (!selected || settingsBusy) return;
+    const current = settingsRequest;
+    $('#ratesForm').querySelector('button').disabled = true;
+    $('#settingsMessage').textContent = 'Loading rates...';
+    try {
+      const data = await call({ action: 'rates', userId: selected.id });
+      if (current !== settingsRequest) return;
+      document.querySelectorAll('[data-rate]').forEach(input => { input.value = data.rates[input.dataset.rate] ?? ''; });
+      ratesLoaded = true;
+      $('#ratesForm').querySelector('button').disabled = false;
+      $('#settingsMessage').textContent = '';
+    } catch (error) {
+      if (current === settingsRequest) $('#settingsMessage').textContent = error.message + ' Reopen the Rates tab to retry.';
+    }
+  }
+  async function saveSettings(body, success, after) {
+    if (!selected || settingsBusy) return;
+    const current = settingsRequest;
+    settingsBusy = true;
+    $('#settingsFields').disabled = true;
+    $('#closeSettings').disabled = true;
+    $('#settingsMessage').textContent = 'Please wait...';
+    try {
+      await call({ ...body, userId: selected.id });
+      if (current !== settingsRequest) return;
+      $('#settingsMessage').textContent = success;
+      if (after) await after();
+    } catch (error) {
+      if (current === settingsRequest) $('#settingsMessage').textContent = error.message;
+    } finally {
+      settingsBusy = false;
+      $('#settingsFields').disabled = false;
+      $('#closeSettings').disabled = false;
+    }
+  }
+  $('#generalForm').onsubmit = event => {
+    event.preventDefault();
+    void saveSettings({ action: 'update', firstName: $('#editFirstName').value.trim(), lastName: $('#editLastName').value.trim(),
+      email: $('#editEmail').value.trim(), phone: $('#editPhone').value.trim() }, 'General details saved.', async () => {
+      selected.email = $('#editEmail').value.trim();
+      selected.name = `${$('#editFirstName').value.trim()} ${$('#editLastName').value.trim()}`;
+      $('#settingsTitle').textContent = selected.name;
+      await loadStaff();
+    });
+  };
+  $('#ratesForm').onsubmit = event => {
+    event.preventDefault();
+    if (!ratesLoaded) return;
+    const rates = {};
+    document.querySelectorAll('[data-rate]').forEach(input => { rates[input.dataset.rate] = input.value === '' ? null : Number(input.value); });
+    void saveSettings({ action: 'save-rates', rates }, 'Rates saved.');
+  };
+  $('#resetStaffPassword').onclick = () => {
+    if (selected && window.confirm(`Send a password reset email to ${selected.email}?`)) {
+      void saveSettings({ action: 'reset-password' }, `Password reset email sent to ${selected.email}.`);
+    }
+  };
+  $('#removeStaff').onclick = () => {
+    if (!selected || !window.confirm(`Permanently remove ${selected.name || selected.email} (${selected.email})? This cannot be undone. Browser-saved timesheets remain on their device.`)) return;
+    void saveSettings({ action: 'remove' }, 'Employee removed.', async () => {
+      settings.close();
+      page = 1;
+      await loadStaff();
+    });
+  };
 
   async function call(body) {
     const { data, error } = await client.functions.invoke('staff-admin', { body });
@@ -31,40 +147,14 @@
           row.append(cell);
         }
         const actions = document.createElement('td');
-        if (staff.role !== 'Admin') {
-          const remove = document.createElement('button');
-          remove.type = 'button';
-          remove.className = 'outline';
-          remove.textContent = 'Remove';
-          remove.setAttribute('aria-label', `Remove ${staff.name || staff.email}`);
-          remove.addEventListener('click', async () => {
-            if (!client || loading || removing) return;
-            const label = staff.name ? `${staff.name} (${staff.email})` : staff.email;
-            if (!window.confirm(`Permanently remove ${label}? They will no longer be able to sign in. This cannot be undone. Timesheets saved in their browser will remain on that device.`)) return;
-            const current = request;
-            removing = true;
-            $('#staffRows').querySelectorAll('button').forEach(button => { button.disabled = true; });
-            $('#staffPrevious').disabled = $('#staffNext').disabled = $('#staffRefresh').disabled = true;
-            $('#staffMessage').textContent = 'Removing staff...';
-            try {
-              await call({ action: 'remove', userId: staff.id });
-              if (current !== request) return;
-              removing = false;
-              page = 1;
-              await loadStaff();
-            } catch (error) {
-              if (current !== request) return;
-              $('#staffMessage').textContent = error.message;
-              $('#staffRows').querySelectorAll('button').forEach(button => { button.disabled = false; });
-              $('#staffPrevious').disabled = page <= 1;
-              $('#staffNext').disabled = !data.hasMore;
-              $('#staffRefresh').disabled = false;
-            } finally {
-              removing = false;
-            }
-          });
-          actions.append(remove);
-        }
+        const settingsButton = document.createElement('button');
+        settingsButton.type = 'button';
+        settingsButton.className = 'outline staff-more';
+        settingsButton.textContent = '\u22ee';
+        settingsButton.setAttribute('aria-label', `Settings for ${staff.name || staff.email}`);
+        settingsButton.setAttribute('aria-haspopup', 'dialog');
+        settingsButton.addEventListener('click', () => { void openSettings(staff); });
+        actions.append(settingsButton);
         row.append(actions);
         $('#staffRows').append(row);
       }
@@ -86,6 +176,9 @@
     client = event.detail?.client || null;
     if (client) { void loadStaff(); return; }
     ++request;
+    ++settingsRequest;
+    selected = null;
+    settings.close();
     $('#staffRows').replaceChildren();
     dialog.close();
   });

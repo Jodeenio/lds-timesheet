@@ -27,6 +27,16 @@
 .staff-pagination { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
 .invite-dialog { width: min(460px, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 28px; border: 1px solid var(--line); border-radius: 16px; color: #294338; }
 .invite-dialog::backdrop { background: #10261c88; }
+.staff-settings { width: min(600px, calc(100vw - 32px)); }
+.staff-settings .heading { align-items: center; gap: 12px; }
+.staff-settings h2 { margin: 0; }
+.staff-settings fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.settings-tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--line); margin-top: 20px; }
+.settings-tabs button { padding: 12px 18px; border: 0; background: transparent; color: #61776b; border-bottom: 3px solid transparent; }
+.settings-tabs button[aria-selected="true"] { color: var(--green); border-bottom-color: var(--green); font-weight: 650; }
+.settings-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.settings-actions .danger-button { color: #a52c2c; border-color: #d9a6a6; }
+.staff-table .staff-more { font-size: 24px; min-width: 44px; min-height: 44px; padding: 2px 12px; }
 .staff-form { display: grid; gap: 12px; }
 .staff-form input { width: 100%; padding: 12px; border: 1px solid #bccdc3; border-radius: 8px; font: inherit; }
 button:disabled { opacity: .6; cursor: wait; }
