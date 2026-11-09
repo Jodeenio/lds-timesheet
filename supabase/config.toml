@@ -1,0 +1,3 @@
+[functions.staff-admin]
+# Authentication is verified inside the function using auth.getUser().
+verify_jwt = false

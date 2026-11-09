@@ -85,14 +85,47 @@
           <p>Welcome to your administrator workspace.</p>
         </div>
       </div>
-      <section class="sheet" style="padding: 24px" aria-label="Dashboard overview">
+      <section class="sheet admin-section" aria-labelledby="staffListTitle">
+        <div class="heading">
+          <div><h2 id="staffListTitle">Staff</h2><p>Manage staff access and email invitations.</p></div>
+          <button class="primary" id="addStaff" type="button">+ Add staff</button>
+        </div>
+        <p id="staffMessage" role="status" aria-live="polite">Loading staff...</p>
+        <div class="staff-table-wrap">
+          <table class="staff-table">
+            <thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th></tr></thead>
+            <tbody id="staffRows"></tbody>
+          </table>
+        </div>
+        <div class="staff-pagination">
+          <button class="outline" id="staffPrevious" type="button" disabled>Previous</button>
+          <span id="staffPage">Page 1</span>
+          <button class="outline" id="staffNext" type="button" disabled>Next</button>
+          <button class="textbutton" id="staffRefresh" type="button">Refresh</button>
+        </div>
+      </section>
+      <section class="sheet admin-section" aria-label="Staff timesheets">
         <h2>Staff timesheets</h2>
-        <p>Staff currently save their timesheets in their own browsers. Central timesheet viewing and staff management are not connected yet.</p>
+        <p>Staff currently save their timesheets in their own browsers. Central timesheet viewing is not connected yet.</p>
       </section>
       <p id="weekMessage" role="status"></p>
     </main>
+    <dialog id="inviteDialog" class="invite-dialog" aria-labelledby="inviteTitle">
+      <form id="inviteForm" class="staff-form">
+        <h2 id="inviteTitle">Add staff</h2>
+        <p>Send an invitation so your new staff member can enter their name, phone number and password.</p>
+        <label for="inviteEmail">Staff email</label>
+        <input id="inviteEmail" name="email" type="email" autocomplete="off" required>
+        <p id="inviteMessage" role="status" aria-live="polite"></p>
+        <div class="staff-pagination">
+          <button class="outline" id="cancelInvite" type="button">Cancel</button>
+          <button class="primary" id="sendInvite" type="submit">Send invitation</button>
+        </div>
+      </form>
+    </dialog>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="dashboard.js"></script>
     <script src="auth.js"></script>
   </body>
 </html>

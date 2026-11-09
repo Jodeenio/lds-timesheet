@@ -64,6 +64,9 @@
     closeAccountMenu();
     document.querySelector('#staffEmail').textContent = user?.email || '';
     document.dispatchEvent(new CustomEvent('staff-session', { detail: user }));
+    if (dashboardPage) {
+      document.dispatchEvent(new CustomEvent('admin-session', { detail: user ? { user, client } : null }));
+    }
   }
 
   async function resolveSession(session) {
@@ -85,6 +88,10 @@
       if (check !== sessionCheck) return;
       if (error || !data.user) throw error || new Error('No user');
       const admin = data.user.app_metadata?.role === 'admin';
+      if (!admin && data.user.invited_at && !data.user.user_metadata?.onboarding_complete) {
+        location.replace(new URL('welcome/', document.baseURI).href);
+        return;
+      }
       if (admin !== dashboardPage) {
         location.replace(admin ? dashboardUrl.href : staffUrl.href);
         return;
