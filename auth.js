@@ -9,8 +9,33 @@
   const login = document.querySelector('#loginButton');
   const link = document.querySelector('#emailLink');
   const signOut = document.querySelector('#signOut');
+  const accountToggle = document.querySelector('#accountToggle');
   const config = window.LDS_SUPABASE;
   let client;
+
+  function closeAccountMenu() {
+    account.dataset.open = 'false';
+    accountToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  accountToggle.addEventListener('click', () => {
+    const open = accountToggle.getAttribute('aria-expanded') !== 'true';
+    account.dataset.open = String(open);
+    accountToggle.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', event => {
+    if (!account.contains(event.target)) closeAccountMenu();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && account.dataset.open === 'true') {
+      closeAccountMenu();
+      accountToggle.focus();
+    }
+  });
+  account.addEventListener('focusout', event => {
+    if (!account.contains(event.relatedTarget)) closeAccountMenu();
+  });
+  window.matchMedia('(max-width: 600px)').addEventListener('change', closeAccountMenu);
 
   function busy(value) {
     login.disabled = link.disabled = value;
@@ -19,9 +44,11 @@
 
   function showSession(session) {
     const user = session?.user || null;
+    document.title = user ? 'LDS Staff · Timesheet' : 'LDS Staff · Sign in';
     panel.hidden = !!user;
     sheet.hidden = !user;
     account.hidden = !user;
+    closeAccountMenu();
     document.querySelector('#staffEmail').textContent = user?.email || '';
     password.value = '';
     document.dispatchEvent(new CustomEvent('staff-session', { detail: user }));
