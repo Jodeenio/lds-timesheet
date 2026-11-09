@@ -10,6 +10,14 @@ let submission = null, submissionReady = false, submissionRequest = 0, submittin
 const adminEditId = new URLSearchParams(location.search).get('editTimesheet');
 const adminEditing = !!adminEditId;
 const locked = () => !submissionReady || submitting || (!adminEditing && ['pending', 'approved'].includes(submission?.status));
+function showSubmissionStatus(message, state = submissionReady ? submission?.status || 'draft' : 'loading') {
+  $('#submissionStatus').textContent = message;
+  $('#submissionStatus').dataset.status = state;
+  const topStatus = $('#weekSubmissionStatus');
+  topStatus.textContent = message;
+  topStatus.dataset.status = state;
+  topStatus.hidden = adminEditing;
+}
 function submissionText() {
   if (submitting) return 'Submitting timesheet...';
   if (!submissionReady) return 'Loading submission status...';
@@ -49,7 +57,7 @@ async function loadSubmission() {
     render();
   } catch (error) {
     if (current !== submissionRequest || userId !== staffId) return;
-    $('#submissionStatus').textContent = error.message;
+    showSubmissionStatus(error.message, 'error');
     $('#retrySubmission').hidden = false;
   }
 }
@@ -76,7 +84,7 @@ async function loadAdminTimesheet() {
     render();
   } catch (error) {
     if (current !== submissionRequest) return;
-    $('#submissionStatus').textContent = error.message;
+    showSubmissionStatus(error.message, 'error');
     $('#retrySubmission').hidden = false;
   }
 }
@@ -242,17 +250,17 @@ function render() {
 
   $('#days').querySelectorAll('input, select, button').forEach(element => { element.disabled = !workTypesReady || locked(); });
   $('#submitWeek').disabled = !workTypesReady || locked();
-  $('#submitWeek').textContent = submitting ? 'Saving...' : adminEditing ? 'Save changes' : 'Submit timesheet';
+  $('#submitWeek').textContent = submitting ? 'Saving...' : adminEditing ? 'Save changes' : ['pending', 'approved'].includes(submission?.status) ? 'Submitted' : 'Submit timesheet';
   $('#adminAdjustmentNotice').hidden = !submission?.adjusted_at;
   document.querySelectorAll('.daycard').forEach(card => {
     if (submission?.adjusted_shifts?.[card.dataset.date]?.length) {
       const notice = document.createElement('span');
       notice.className = 'admin-day-adjustment';
-      notice.textContent = 'Adjusted by admin';
+      notice.textContent = 'Adjusted by an admin.';
       card.querySelector('.dayheading').append(notice);
     }
   });
-  $('#submissionStatus').textContent = submissionText();
+  showSubmissionStatus(submissionText());
   for (const id of ['previous', 'next', 'thisWeek', 'weekPicker']) $(`#${id}`).disabled = submitting || adminEditing;
 
   updateTotals();

@@ -102,6 +102,7 @@
             </div>
             <button class="arrow" id="next" aria-label="Next week">→</button>
           </div>
+          <p id="weekSubmissionStatus" class="week-submission-status" aria-label="Timesheet status"></p>
           <div class="weekactions">
             <label class="picker">Go to week <input type="date" id="weekPicker" aria-label="Choose a date in the week">
             </label>
@@ -125,7 +126,7 @@
         <a id="cancelAdminEdit" class="outline" href="dashboard/" hidden>Cancel and return to dashboard</a>
       </div>
       <p id="submissionStatus" role="status" aria-live="polite"></p>
-      <p id="adminAdjustmentNotice" class="admin-adjustment-notice" hidden>an admin has adjusted the timesheet</p>
+      <p id="adminAdjustmentNotice" class="admin-adjustment-notice" hidden>An admin has adjusted this timesheet.</p>
       <button id="retrySubmission" class="outline" type="button" hidden>Retry loading submission</button>
       <p id="weekMessage" role="status">
       </p>
