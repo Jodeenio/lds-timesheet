@@ -7,10 +7,6 @@
 .auth-card .primary { margin-top: 8px; }
 .auth-help { font-size: 12px; color: #61776b; }
 .staff-account { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; font-size: 12px; color: white; }
-<<<<<<< Updated upstream
-button:disabled { opacity: .6; cursor: wait; }
-@media (max-width: 600px) { .auth-card { margin: 140px 16px 40px; padding: 24px; } .staff-account { gap: 8px; } .staff-account .saved { display: none; } #staffEmail { max-width: 150px; overflow-wrap: anywhere; } }
-=======
 .account-details { display: flex; align-items: center; gap: 12px; }
 .account-toggle { display: none; }
 .staff-identity { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -41,7 +37,6 @@ button:disabled { opacity: .6; cursor: wait; }
   .account-details #staffEmail { overflow-wrap: anywhere; }
   .account-details .saved { margin-left: 0; }
 }
->>>>>>> Stashed changes
 :root {
   font-family: 'DM Sans',system-ui,sans-serif;
   color: #294338;

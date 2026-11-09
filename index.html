@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>LDS Staff · Timesheet</title>
+    <title>LDS Staff &middot; Sign in</title>
     <meta name="description" content="Enter your daily start and end times, one week at a time.">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="header.css">
@@ -47,11 +47,6 @@
                 ></a>
               </div>
               <div class="staff-account" id="staffAccount" hidden>
-<<<<<<< Updated upstream
-                <span id="staffEmail"></span>
-                <span class="saved" id="saveStatus" role="status">Saved on this device</span>
-                <button class="outline" id="signOut" type="button">Sign out</button>
-=======
                 <span class="staff-mobile-name" data-staff-name></span>
                 <button class="account-toggle" id="accountToggle" type="button" aria-label="Account options" aria-expanded="false" aria-controls="accountDetails">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
@@ -67,7 +62,6 @@
                   <span class="saved" id="saveStatus" role="status">Saved on this device</span>
                   <button class="outline" id="signOut" type="button">Sign out</button>
                 </div>
->>>>>>> Stashed changes
               </div>
             </div>
           </div></nav></div>
@@ -75,9 +69,9 @@
       <div class="eyebrow">LDS STAFF PORTAL</div>
       <h1 id="authTitle">Staff sign in</h1>
       <p>Sign in with your staff email to open your timesheet.</p>
-      <form id="loginForm">
+      <form id="loginForm" name="staff-sign-in" method="post" autocomplete="on">
         <label for="staffLoginEmail">Email address</label>
-        <input id="staffLoginEmail" name="email" type="email" autocomplete="username" required>
+        <input id="staffLoginEmail" name="username" type="email" autocomplete="username" autocapitalize="none" spellcheck="false" required>
         <label for="staffPassword">Password</label>
         <input id="staffPassword" name="password" type="password" autocomplete="current-password" required>
         <button class="primary" id="loginButton" type="submit" disabled>Sign in</button>

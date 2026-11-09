@@ -13,9 +13,6 @@ Static staff timesheet with Supabase Auth. Serve this folder using an HTTP serve
 
 No database tables or SQL migrations are required for login. Sessions persist using the Supabase client and sign out applies to the current browser.
 
-<<<<<<< Updated upstream
-## Timesheet storage
-=======
 ## Admin and staff routing
 
 Staff accounts open `index.html`. Accounts with `app_metadata.role` set to `admin` open `dashboard/`. The static host must serve `dashboard/index.html` for `/dashboard/` (and ideally redirect `/dashboard` to `/dashboard/`). Deploy the dashboard folder alongside the other files. Its relative base URL also supports hosting the app under a subdirectory.
@@ -63,7 +60,6 @@ Invitations are not sent automatically by deploying this code. To test, sign in 
 The staff list includes all Auth accounts in the dedicated staff project, including administrators, with pagination. The timesheets section remains informational until cloud timesheet storage is added. Staff profile metadata is editable by that staff member and must never grant permissions.
 
 ## Local timesheet storage
->>>>>>> Stashed changes
 
 Timesheets still save only in this browser, under a separate local-storage key for each Supabase user ID. They do not sync to Supabase or between devices. Signing out clears the visible timesheet but retains that staff member's browser copy for their next login.
 

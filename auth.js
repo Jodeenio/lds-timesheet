@@ -9,8 +9,37 @@
   const login = document.querySelector('#loginButton');
   const link = document.querySelector('#emailLink');
   const signOut = document.querySelector('#signOut');
+  const accountToggle = document.querySelector('#accountToggle');
   const config = window.LDS_SUPABASE;
+  const dashboardPage = document.body.dataset.page === 'dashboard';
+  const staffUrl = new URL('index.html', document.baseURI);
+  const dashboardUrl = new URL('dashboard/', document.baseURI);
   let client;
+  let sessionCheck = 0;
+
+  function closeAccountMenu() {
+    account.dataset.open = 'false';
+    accountToggle.setAttribute('aria-expanded', 'false');
+  }
+
+  accountToggle.addEventListener('click', () => {
+    const open = accountToggle.getAttribute('aria-expanded') !== 'true';
+    account.dataset.open = String(open);
+    accountToggle.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', event => {
+    if (!account.contains(event.target)) closeAccountMenu();
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && account.dataset.open === 'true') {
+      closeAccountMenu();
+      accountToggle.focus();
+    }
+  });
+  account.addEventListener('focusout', event => {
+    if (!account.contains(event.relatedTarget)) closeAccountMenu();
+  });
+  window.matchMedia('(max-width: 600px)').addEventListener('change', closeAccountMenu);
 
   function busy(value) {
     login.disabled = link.disabled = value;
@@ -19,11 +48,18 @@
 
   function showSession(session) {
     const user = session?.user || null;
+    // Removing a submitted login form lets password managers detect success.
+    // Keep its field values intact until the next signed-out state.
+    if (user) {
+      form.remove();
+    } else if (!form.isConnected) {
+      password.value = '';
+      panel.insertBefore(form, message);
+    }
+    document.title = user ? 'LDS Staff · Timesheet' : 'LDS Staff · Sign in';
     panel.hidden = !!user;
     sheet.hidden = !user;
     account.hidden = !user;
-<<<<<<< Updated upstream
-=======
     if (user && dashboardPage) document.title = 'LDS Staff | Admin dashboard';
     closeAccountMenu();
     const staffName = user ? (user.user_metadata?.full_name?.trim() || 'Staff') : '';
@@ -31,10 +67,46 @@
       element.textContent = staffName;
       element.title = staffName;
     });
->>>>>>> Stashed changes
     document.querySelector('#staffEmail').textContent = user?.email || '';
-    password.value = '';
     document.dispatchEvent(new CustomEvent('staff-session', { detail: user }));
+    if (dashboardPage) {
+      document.dispatchEvent(new CustomEvent('admin-session', { detail: user ? { user, client } : null }));
+    }
+  }
+
+  async function resolveSession(session) {
+    const check = ++sessionCheck;
+    sheet.hidden = true;
+    account.hidden = true;
+    if (!session) {
+      if (dashboardPage) {
+        location.replace(staffUrl.href);
+        return;
+      }
+      showSession(null);
+      message.textContent = 'Sign in to access your timesheet.';
+      return;
+    }
+    try {
+      // Fetch the current server-controlled role, rather than trusting local metadata.
+      const { data, error } = await client.auth.getUser(session.access_token);
+      if (check !== sessionCheck) return;
+      if (error || !data.user) throw error || new Error('No user');
+      const admin = data.user.app_metadata?.role === 'admin';
+      if (!admin && data.user.invited_at && !data.user.user_metadata?.onboarding_complete) {
+        location.replace(new URL('welcome/', document.baseURI).href);
+        return;
+      }
+      if (admin !== dashboardPage) {
+        location.replace(admin ? dashboardUrl.href : staffUrl.href);
+        return;
+      }
+      showSession({ user: data.user });
+    } catch {
+      if (check !== sessionCheck) return;
+      showSession(null);
+      message.textContent = 'Could not verify your account. Check your connection and sign in again.';
+    }
   }
 
   if (!config?.url || !config?.publishableKey) {
@@ -54,8 +126,8 @@
   }
 
   client.auth.onAuthStateChange((event, session) => {
-    showSession(session);
-    if (!session) message.textContent = 'Sign in to access your timesheet.';
+    // Run Auth API requests after the auth event callback releases its lock.
+    setTimeout(() => { void resolveSession(session); }, 0);
   });
 
   form.addEventListener('submit', async event => {
@@ -96,7 +168,7 @@
     try {
       const { error } = await client.auth.signOut({ scope: 'local' });
       if (error) throw error;
-      showSession(null);
+      await resolveSession(null);
       message.textContent = 'You have signed out.';
       email.focus();
     } catch {
@@ -108,7 +180,7 @@
 
   client.auth.getSession().then(({ data, error }) => {
     if (error) throw error;
-    showSession(data.session);
+    void resolveSession(data.session);
     message.textContent = 'Sign in to access your timesheet.';
     busy(false);
   }).catch(() => {
