@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>LDS Staff · Timesheet</title>
+    <meta name="description" content="Enter your daily start and end times, one week at a time.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="header.css">
+  </head>
+  <body>
+    <div class="lds-header"><nav aria-label="Main navigation"
+          class="fixed left-1/2 top-4 z-[999] w-[calc(100%-2rem)] -translate-x-1/2 rounded-2xl bg-gradient-to-r from-gray-900 via-gray-900 to-gray-900 py-4 shadow-md transition-all duration-300"
+        >
+          <div class="mx-auto w-full px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center lg:hidden"><a class="flex items-center" href="https://www.ldsairandelectrical.com.au/index.html"
+                  ><div class="relative h-8 w-32 sm:h-10 sm:w-40">
+                    <img
+                      alt="LDS Air &amp; Electrical"
+                      loading="lazy"
+                      width="128"
+                      height="32"
+                      decoding="async"
+                      data-nimg="1"
+                      class="object-contain brightness-100"
+                      style="color: transparent"
+                      sizes="(max-width: 640px) 128px, 160px"
+                      src="assets/lds-logo.png"
+                    /></div
+                ></a>
+              </div>
+              <div class="hidden shrink-0 lg:block">
+                <a class="flex items-center" href="https://www.staff.ldsairandelectrical.com.au/index.html"
+                  ><div class="relative h-12 w-48">
+                    <img
+                      alt="LDS Air &amp; Electrical"
+                      loading="lazy"
+                      width="192"
+                      height="48"
+                      decoding="async"
+                      data-nimg="1"
+                      class="object-contain brightness-100"
+                      style="color: transparent"
+                      src="assets/lds-logo.png"
+                    /></div
+                ></a>
+              </div>
+              <span class="saved" id="saveStatus" role="status">Saved on this device</span>
+            </div>
+          </div></nav></div>
+    <main>
+      <div class="heading">
+        <div>
+          <div class="eyebrow">KEEP YOUR WEEK SIMPLE</div>
+          <h1>Your timesheet</h1>
+          <p>Add your shifts and choose a work type for each shift. We’ll add up the hours.</p>
+        </div>
+        <button class="outline" id="export">↓ Export week</button>
+      </div>
+      <section class="sheet" aria-label="Weekly timesheet">
+        <div class="weekbar">
+          <div class="weeknav">
+            <button class="arrow" id="previous" aria-label="Previous week">←</button>
+            <div>
+              <small>WEEK OF</small>
+              <h2 id="weekLabel">
+              </h2>
+            </div>
+            <button class="arrow" id="next" aria-label="Next week">→</button>
+          </div>
+          <div class="weekactions">
+            <label class="picker">Go to week <input type="date" id="weekPicker" aria-label="Choose a date in the week">
+            </label>
+            <button class="outline" id="thisWeek">This week</button>
+          </div>
+        </div>
+        <div id="days">
+        </div>
+        <div class="totalbar">
+          <div>
+            <strong>Weekly total</strong>
+            <small id="daysCount">0 days entered</small>
+          </div>
+          <strong id="weeklyTotal">0h 00m</strong>
+        </div>
+      </section>
+      <div class="below">
+        <span>Blank days count as days off. Changes save automatically on this device.</span>
+        <button class="primary" id="saveWeek">Save week</button>
+      </div>
+      <p id="weekMessage" role="status">
+      </p>
+      <div id="legacy" hidden>
+        <span>Your earlier tracked hours are preserved separately.</span>
+        <button class="textbutton" id="exportLegacy">Download earlier entries</button>
+      </div>
+      <footer>
+        <span>© 2026 LDS Air & Electrical (REC 36349). All rights reserved.</span>
+        <span class="footer-credit"><img src="assets/jodeenio-logo.png" alt="" width="24" height="24">Jodeenio</span>
+      </footer>
+    </main>
+    <script src="time.js">
+    </script>
+    <script src="app.js">
+    </script>
+  </body>
+</html>

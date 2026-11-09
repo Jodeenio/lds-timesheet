@@ -1,0 +1,900 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;450;500;550;600;650;700&display=swap');
+:root {
+  font-family: 'DM Sans',system-ui,sans-serif;
+  color: #294338;
+  background: #f7f9f7;
+  font-size: 14px;
+  --green: #236956;
+  --line: #e2e9e3
+}
+
+* {
+  box-sizing: border-box
+}
+
+body {
+  margin: 0
+}
+
+button,input {
+  font: inherit
+}
+
+button {
+  cursor: pointer;
+  color: inherit
+}
+
+button:focus-visible,input:focus-visible {
+  outline: 2px solid #43866b;
+  outline-offset: 3px
+}
+
+header {
+  height: 88px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  padding: 0 5%;
+  gap: 30px
+}
+
+header>span:not(.saved) {
+  font-size: 10px;
+  letter-spacing: 1.7px;
+  color: #91a094;
+  border-left: 1px solid var(--line);
+  padding-left: 28px
+}
+
+.brand {
+  font-size: 32px;
+  font-weight: 650;
+  letter-spacing: -1.5px;
+  color: var(--green);
+  text-decoration: none
+}
+
+.saved {
+  margin-left: auto;
+  color: #7e9584;
+  font-size: 11px
+}
+
+.saved:before {
+  content: '●';
+  font-size: 8px;
+  margin-right: 7px
+}
+
+main {
+  max-width: 1150px;
+  margin: 0 auto;
+  padding: 50px 36px
+}
+
+.heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px
+}
+
+.eyebrow {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #869b8c;
+  font-weight: 600
+}
+
+h1 {
+  font-size: 32px;
+  letter-spacing: -1px;
+  font-weight: 550;
+  margin: 9px 0
+}
+
+p {
+  color: #86988b;
+  font-size: 13px;
+  line-height: 1.7
+}
+
+.outline {
+  background: #fff;
+  border: 1px solid #dbe5dc;
+  border-radius: 6px;
+  padding: 10px 15px;
+  font-size: 12px
+}
+
+.sheet {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px #29433803
+}
+
+.weekbar {
+  padding: 25px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px
+}
+
+.weeknav {
+  display: flex;
+  align-items: center;
+  gap: 22px
+}
+
+.weeknav>div {
+  min-width: 215px
+}
+
+.weeknav small {
+  font-size: 9px;
+  letter-spacing: 1.7px;
+  color: #93a293
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: 550;
+  margin: 6px 0 0
+}
+
+.arrow {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 5px;
+  width: 32px;
+  height: 32px;
+  color: #708d78
+}
+
+.weekactions {
+  display: flex;
+  align-items: center;
+  gap: 16px
+}
+
+.picker {
+  font-size: 10px;
+  color: #839789
+}
+
+.picker input {
+  display: block;
+  border: 0;
+  background: transparent;
+  color: #546d5b;
+  font-size: 11px;
+  margin-top: 4px;
+  max-width: 130px
+}
+
+.tablehead,.dayrow {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr 1fr 1fr 1fr 28px;
+  align-items: center;
+  gap: 22px;
+  padding: 14px 28px
+}
+
+.tablehead {
+  background: #f1f5f1;
+  color: #829888;
+  font-size: 10px;
+  letter-spacing: .2px
+}
+
+.dayrow {
+  min-height: 88px;
+  border-bottom: 1px solid #edf1ed;
+  padding-top: 18px;
+  padding-bottom: 18px
+}
+
+.dayrow.weekend {
+  background: #fbfcfa
+}
+
+.dayname {
+  font-weight: 550;
+  font-size: 12px
+}
+
+.dayname small {
+  display: block;
+  font-size: 10px;
+  color: #99a79b;
+  font-weight: 400;
+  margin-top: 5px
+}
+
+.todaytag {
+  display: inline-block;
+  font-size: 8px;
+  font-weight: 500;
+  color: #5e8c70;
+  background: #eaf3e9;
+  border-radius: 3px;
+  padding: 3px 5px;
+  margin-left: 8px
+}
+
+.field label {
+  display: none
+}
+
+.timeinput {
+  border: 1px solid #dee7df;
+  border-radius: 5px;
+  background: #fff;
+  padding: 10px 12px;
+  width: 100%;
+  max-width: 150px;
+  color: #46634e;
+  font-size: 13px
+}
+
+.timeinput:invalid {
+  border-color: #b26a55
+}
+
+.overnight {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: #8da091;
+  font-size: 10px
+}
+
+.overnight input {
+  accent-color: #236956;
+  width: 15px;
+  height: 15px
+}
+
+.daytotal {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums
+}
+
+.rowerror {
+  color: #a56550;
+  font-size: 10px;
+  line-height: 1.5;
+  grid-column: 2/-1;
+  margin-top: -10px
+}
+
+.rowerror:empty {
+  display: none
+}
+
+.clear {
+  border: 0;
+  background: none;
+  color: #98a79a;
+  font-size: 19px;
+  padding: 0
+}
+
+.clear:hover {
+  color: #ac6954
+}
+
+.totalbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #edf4ed;
+  padding: 24px 28px
+}
+
+.totalbar strong {
+  font-size: 13px;
+  font-weight: 550
+}
+
+.totalbar small {
+  display: block;
+  font-size: 10px;
+  color: #8b9f8f;
+  margin-top: 5px
+}
+
+#weeklyTotal {
+  font-size: 26px;
+  letter-spacing: -.5px;
+  font-variant-numeric: tabular-nums
+}
+
+.below {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  margin-top: 23px
+}
+
+.below>span {
+  font-size: 11px;
+  color: #91a093
+}
+
+.primary {
+  background: var(--green);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 12px 26px;
+  font-size: 12px
+}
+
+#weekMessage {
+  min-height: 20px;
+  margin: 10px 0;
+  font-size: 12px
+}
+
+#legacy {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px;
+  font-size: 11px;
+  color: #8b9f8f;
+  margin-top: 25px
+}
+
+.textbutton {
+  border: 0;
+  background: none;
+  color: #36775a;
+  text-decoration: underline;
+  font-size: 11px;
+  margin-left: 8px
+}
+
+.footer-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.footer-credit img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 45px;
+  font-size: 10px;
+  color: #a3afa5
+}
+
+@media(max-width:850px) {
+  main {
+    padding: 35px 22px
+  }
+
+  .weekbar {
+    padding: 22px;
+    align-items: flex-start
+  }
+
+  .weekactions {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 10px
+  }
+
+  .tablehead,.dayrow {
+    padding-left: 22px;
+    padding-right: 22px;
+    gap: 12px;
+    grid-template-columns: 1.2fr 1fr 1fr .9fr .9fr 20px
+  }
+
+  .timeinput {
+    padding: 9px 5px
+  }
+
+  .weeknav {
+    gap: 12px
+  }
+
+  .weeknav>div {
+    min-width: 185px
+  }
+
+}
+
+@media(max-width:600px) {
+  header {
+    height: 72px;
+    padding: 0 20px;
+    gap: 15px
+  }
+
+  header>span:not(.saved) {
+    display: none
+  }
+
+  .brand {
+    font-size: 28px
+  }
+
+  .saved {
+    font-size: 10px
+  }
+
+  main {
+    padding: 30px 16px
+  }
+
+  .heading {
+    gap: 12px;
+    align-items: flex-start
+  }
+
+  h1 {
+    font-size: 27px
+  }
+
+  .heading p {
+    max-width: 220px;
+    font-size: 12px
+  }
+
+  .heading>.outline {
+    margin-top: 25px;
+    font-size: 11px;
+    padding: 9px 11px;
+    white-space: nowrap
+  }
+
+  .weekbar {
+    flex-direction: column;
+    padding: 20px;
+    gap: 18px
+  }
+
+  .weeknav {
+    width: 100%;
+    justify-content: space-between
+  }
+
+  .weeknav>div {
+    text-align: center
+  }
+
+  .weekactions {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center
+  }
+
+  .picker {
+    display: flex;
+    align-items: center;
+    gap: 10px
+  }
+
+  .picker input {
+    margin: 0
+  }
+
+  .tablehead {
+    display: none
+  }
+
+  .dayrow {
+    grid-template-columns: 1fr 1fr 20px;
+    gap: 15px;
+    padding: 20px
+  }
+
+  .dayname {
+    grid-column: 1/3;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px
+  }
+
+  .dayname small {
+    display: inline;
+    margin: 0
+  }
+
+  .field {
+    grid-row: 2
+  }
+
+  .field label {
+    display: block;
+    font-size: 10px;
+    color: #8a9f90;
+    margin-bottom: 6px
+  }
+
+  .timeinput {
+    max-width: none;
+    padding: 11px
+  }
+
+  .clear {
+    grid-column: 3;
+    grid-row: 1
+  }
+
+  .overnight {
+    grid-column: 1;
+    grid-row: 3
+  }
+
+  .daytotal {
+    grid-column: 2;
+    grid-row: 3;
+    text-align: right
+  }
+
+  .rowerror {
+    grid-column: 1/-1;
+    grid-row: 4;
+    margin: 0
+  }
+
+  .totalbar {
+    padding: 22px 20px
+  }
+
+  .below {
+    align-items: flex-start
+  }
+
+  .below>span {
+    max-width: 210px;
+    line-height: 1.7
+  }
+
+  .primary {
+    white-space: nowrap;
+    padding: 12px 18px
+  }
+
+  footer span:last-child {
+    display: none
+  }
+
+  #legacy .textbutton {
+    display: block;
+    margin: 10px 0 0;
+    padding: 0
+  }
+
+}
+
+.daycard {
+  border-top: 1px solid var(--line);
+  padding: 22px 28px
+}
+
+.daycard.weekend {
+  background: #fbfcfa
+}
+
+.dayheading {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-bottom: 18px
+}
+
+.dayheading .dayname {
+  min-width: 145px
+}
+
+.worktype {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #8a9e8f;
+  font-size: 10px
+}
+
+.worktype select {
+  font: inherit;
+  font-size: 12px;
+  color: #46634e;
+  border: 1px solid #dee7df;
+  border-radius: 5px;
+  padding: 9px 28px 9px 10px;
+  background: #fff
+}
+
+.daytotals {
+  margin-left: auto;
+  text-align: right
+}
+
+.daytotals small {
+  display: block;
+  font-size: 9px;
+  color: #8a9e8f;
+  margin-bottom: 5px
+}
+
+.shiftrow {
+  display: grid;
+  grid-template-columns: 70px 1fr 1fr 1.1fr 80px 24px;
+  gap: 20px;
+  align-items: center;
+  margin-top: 12px
+}
+
+.shiftlabel {
+  font-size: 10px;
+  color: #8a9e8f
+}
+
+.shiftrow .field label {
+  display: block;
+  font-size: 9px;
+  color: #8a9e8f;
+  margin-bottom: 5px
+}
+
+.shiftrow .timeinput {
+  max-width: none
+}
+
+.shifttotal {
+  font-size: 12px;
+  color: #7f9687;
+  text-align: right;
+  font-variant-numeric: tabular-nums
+}
+
+.shiftrow .overnight {
+  padding-top: 14px
+}
+
+.shiftrow .clear {
+  padding-top: 12px
+}
+
+.shiftrow .rowerror {
+  margin: 0;
+  grid-column: 2/-1
+}
+
+.addshift {
+  font: inherit;
+  font-size: 11px;
+  color: #36775a;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: 17px 0 0 90px
+}
+
+.addshift:hover {
+  text-decoration: underline
+}
+
+select:focus-visible {
+  outline: 2px solid #43866b;
+  outline-offset: 3px
+}
+
+@media(max-width:850px) {
+  .daycard {
+    padding: 22px
+  }
+
+  .shiftrow {
+    grid-template-columns: 50px 1fr 1fr 1fr 60px 20px;
+    gap: 12px
+  }
+
+  .dayheading {
+    gap: 18px
+  }
+
+  .dayheading .dayname {
+    min-width: 115px
+  }
+
+  .addshift {
+    margin-left: 62px
+  }
+
+}
+
+@media(max-width:600px) {
+  .daycard {
+    padding: 20px
+  }
+
+  .dayheading {
+    flex-wrap: wrap;
+    gap: 16px
+  }
+
+  .dayheading .dayname {
+    display: block;
+    min-width: 0;
+    flex: 1
+  }
+
+  .dayheading .dayname small {
+    display: block;
+    margin-top: 6px
+  }
+
+  .dayheading .todaytag {
+    margin-left: 6px
+  }
+
+  .worktype {
+    order: 3;
+    width: 100%;
+    justify-content: space-between
+  }
+
+  .worktype select {
+    min-width: 160px
+  }
+
+  .daytotals {
+    min-width: 80px
+  }
+
+  .shiftrow {
+    grid-template-columns: 1fr 1fr 24px;
+    gap: 13px;
+    margin-top: 18px;
+    padding-top: 15px;
+    border-top: 1px solid #edf1ed
+  }
+
+  .shiftlabel {
+    grid-column: 1/3;
+    grid-row: 1
+  }
+
+  .shiftrow .clear {
+    grid-row: 1;
+    grid-column: 3;
+    padding: 0
+  }
+
+  .shiftrow .field {
+    grid-row: 2
+  }
+
+  .shiftrow .overnight {
+    grid-row: 3;
+    grid-column: 1;
+    padding: 0
+  }
+
+  .shifttotal {
+    grid-row: 3;
+    grid-column: 2
+  }
+
+  .shiftrow .rowerror {
+    grid-row: 4;
+    grid-column: 1/-1
+  }
+
+  .addshift {
+    margin-left: 0
+  }
+
+}
+
+.shiftrow {
+  grid-template-columns: 50px 1.15fr 1fr 1fr 1fr 65px 20px;
+  gap: 14px
+}
+
+.shiftrow .worktype {
+  display: block;
+  padding: 0
+}
+
+.shiftrow .worktype select {
+  display: block;
+  margin-top: 5px;
+  width: 100%;
+  padding: 10px 7px;
+  font-size: 11px
+}
+
+.shiftrow .rowerror {
+  grid-column: 2/-1
+}
+
+.addshift {
+  margin-left: 64px
+}
+
+@media(max-width:850px) and (min-width:601px) {
+  .shiftrow {
+    grid-template-columns: 40px 1.1fr 1fr 1fr 80px 55px 20px;
+    gap: 9px
+  }
+
+  .shiftrow .worktype select {
+    padding: 10px 3px;
+    font-size: 10px
+  }
+
+  .shiftrow .overnight {
+    font-size: 9px;
+    gap: 3px
+  }
+
+  .addshift {
+    margin-left: 49px
+  }
+
+}
+
+@media(max-width:600px) {
+  .shiftrow {
+    grid-template-columns: 1fr 1fr 24px;
+    gap: 13px
+  }
+
+  .shiftrow .worktype {
+    grid-row: 2;
+    grid-column: 1/3;
+    order: initial;
+    width: auto
+  }
+
+  .shiftrow .worktype select {
+    width: 100%;
+    font-size: 12px
+  }
+
+  .shiftrow .field {
+    grid-row: 3
+  }
+
+  .shiftrow .overnight {
+    grid-row: 4;
+    grid-column: 1
+  }
+
+  .shiftrow .shifttotal {
+    grid-row: 4;
+    grid-column: 2
+  }
+
+  .shiftrow .rowerror {
+    grid-row: 5;
+    grid-column: 1/-1
+  }
+
+  .addshift {
+    margin-left: 0
+  }
+
+}
