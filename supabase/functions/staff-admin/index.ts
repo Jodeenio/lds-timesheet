@@ -145,7 +145,10 @@ Deno.serve(async (req: Request) => {
         const { data, error: ratesError } = await admin.from('staff_rates').select('regular,overtime,public_holiday,public_holiday_overtime,custom_rates,work_type_settings').eq('user_id', userId).maybeSingle();
         if (ratesError) return reply(502, { error: 'Could not load rates. Check migrations 001, 002 and 005 have been applied.' });
         const { custom_rates = {}, work_type_settings, ...rates } = data || {};
-        const customTypes = (work_type_settings?.customTypes || []).flatMap((type: { key: string; label: string }) => [type, { key: `${type.key}:overtime`, label: `${type.label} overtime` }]);
+        const customTypes = (work_type_settings?.customEnabled ? work_type_settings.customTypes || [] : []).flatMap((type: { key: string; label: string; enabled?: boolean }) => [
+          { ...type, enabled: type.enabled !== false },
+          { key: `${type.key}:overtime`, label: `${type.label} overtime`, enabled: type.enabled !== false },
+        ]);
         return reply(200, { rates, customRates: custom_rates, customTypes });
       }
       const rates: Record<string, number | null> = {};

@@ -147,6 +147,8 @@
         input.step = '0.01';
         input.dataset.customRate = type.key;
         input.value = savedCustomRates[type.key] ?? '';
+        input.disabled = type.enabled === false;
+        label.classList.toggle('disabled-rate-label', input.disabled);
         $('#customRateFields').append(label, input);
       }
       ratesLoaded = true;
@@ -201,7 +203,9 @@
     const rates = {};
     document.querySelectorAll('[data-rate]').forEach(input => { rates[input.dataset.rate] = input.value === '' ? null : Number(input.value); });
     const customRates = { ...savedCustomRates };
-    document.querySelectorAll('[data-custom-rate]').forEach(input => { customRates[input.dataset.customRate] = input.value === '' ? null : Number(input.value); });
+    document.querySelectorAll('[data-custom-rate]').forEach(input => {
+      if (!input.disabled) customRates[input.dataset.customRate] = input.value === '' ? null : Number(input.value);
+    });
     void saveSettings({ action: 'save-rates', rates, customRates }, 'Rates saved.', () => { savedCustomRates = customRates; });
   };
   $('#resendStaffInvite').onclick = () => {
