@@ -46,10 +46,29 @@
                     /></div
                 ></a>
               </div>
-              <span class="saved" id="saveStatus" role="status">Saved on this device</span>
+              <div class="staff-account" id="staffAccount" hidden>
+                <span id="staffEmail"></span>
+                <span class="saved" id="saveStatus" role="status">Saved on this device</span>
+                <button class="outline" id="signOut" type="button">Sign out</button>
+              </div>
             </div>
           </div></nav></div>
-    <main>
+    <section class="auth-card" id="authPanel" aria-labelledby="authTitle">
+      <div class="eyebrow">LDS STAFF PORTAL</div>
+      <h1 id="authTitle">Staff sign in</h1>
+      <p>Sign in with your staff email to open your timesheet.</p>
+      <form id="loginForm">
+        <label for="staffLoginEmail">Email address</label>
+        <input id="staffLoginEmail" name="email" type="email" autocomplete="username" required>
+        <label for="staffPassword">Password</label>
+        <input id="staffPassword" name="password" type="password" autocomplete="current-password" required>
+        <button class="primary" id="loginButton" type="submit" disabled>Sign in</button>
+        <button class="textbutton" id="emailLink" type="button" disabled>Email me a sign-in link</button>
+      </form>
+      <p id="authMessage" role="status" aria-live="polite">Connecting to staff sign in...</p>
+      <p class="auth-help">Need access? Ask your LDS administrator for a staff account.</p>
+    </section>
+    <main id="timesheet" hidden>
       <div class="heading">
         <div>
           <div class="eyebrow">KEEP YOUR WEEK SIMPLE</div>
@@ -91,10 +110,6 @@
       </div>
       <p id="weekMessage" role="status">
       </p>
-      <div id="legacy" hidden>
-        <span>Your earlier tracked hours are preserved separately.</span>
-        <button class="textbutton" id="exportLegacy">Download earlier entries</button>
-      </div>
       <footer>
         <span>© 2026 LDS Air & Electrical (REC 36349). All rights reserved.</span>
         <span class="footer-credit"><img src="assets/jodeenio-logo.png" alt="" width="24" height="24">Jodeenio</span>
@@ -104,5 +119,8 @@
     </script>
     <script src="app.js">
     </script>
+    <script src="supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="auth.js"></script>
   </body>
 </html>
