@@ -33,9 +33,9 @@ Deno.serve(async (req: Request) => {
       const userId = body.action === 'my-work-types' ? user.id : body.userId;
       if (typeof userId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) return reply(400, { error: 'Select a valid staff account.' });
       const { data: defaults, error: defaultsError } = await admin.from('work_types').select('key,label').order('sort_order');
-      if (defaultsError || !defaults?.length) return reply(502, { error: 'Could not load default work types. Check migration 004 has been applied.' });
-      const { data: row, error: settingsError } = await admin.from('staff_data').select('work_type_settings').eq('user_id', userId).maybeSingle();
-      if (settingsError) return reply(502, { error: 'Could not load employee work types. Check the staff_data migration.' });
+      if (defaultsError || !defaults?.length) return reply(502, { error: 'Could not load default work types. Check migration 002 has been applied.' });
+      const { data: row, error: settingsError } = await admin.from('staff_rates').select('work_type_settings').eq('user_id', userId).maybeSingle();
+      if (settingsError) return reply(502, { error: 'Could not load employee work types. Check the staff_rates migration.' });
       if (body.action === 'save-work-types') {
         const settings = body.settings;
         if (!settings || !Array.isArray(settings.enabledDefaults) || typeof settings.customEnabled !== 'boolean' ||
@@ -51,7 +51,7 @@ Deno.serve(async (req: Request) => {
         const labels = [...defaults.map(type => type.label.toLowerCase()), ...customTypes.map(type => type.label.toLowerCase()), ...customOvertimeTypes.map(type => type.label.toLowerCase())];
         if (new Set(customTypes.map(type => type.key)).size !== customTypes.length || new Set(labels).size !== labels.length) return reply(400, { error: 'Each custom work type must have a unique name.' });
         if (!settings.enabledDefaults.length && (!settings.customEnabled || !customTypes.length)) return reply(400, { error: 'Enable at least one work type.' });
-        const { error: saveError } = await admin.from('staff_data').upsert({ user_id: userId,
+        const { error: saveError } = await admin.from('staff_rates').upsert({ user_id: userId,
           work_type_settings: { enabledDefaults: settings.enabledDefaults, customEnabled: settings.customEnabled, customTypes, customOvertimeTypes }, updated_at: new Date().toISOString() });
         if (saveError) return reply(502, { error: 'Could not save work types. Check the employee and migration.' });
         return reply(200, { saved: true });
@@ -135,8 +135,8 @@ Deno.serve(async (req: Request) => {
         return reply(200, { sent: true });
       }
       if (body.action === 'rates') {
-        const { data, error: ratesError } = await admin.from('staff_data').select('regular,overtime,public_holiday,public_holiday_overtime,custom_rates,work_type_settings').eq('user_id', userId).maybeSingle();
-        if (ratesError) return reply(502, { error: 'Could not load rates. Check that the staff_data migration has been applied.' });
+        const { data, error: ratesError } = await admin.from('staff_rates').select('regular,overtime,public_holiday,public_holiday_overtime,custom_rates,work_type_settings').eq('user_id', userId).maybeSingle();
+        if (ratesError) return reply(502, { error: 'Could not load rates. Check migrations 001, 002 and 005 have been applied.' });
         const { custom_rates = {}, work_type_settings, ...rates } = data || {};
         const customTypes = (work_type_settings?.customTypes || []).flatMap((type: { key: string; label: string }) => [type, { key: `${type.key}:overtime`, label: `${type.label} overtime` }]);
         return reply(200, { rates, customRates: custom_rates, customTypes });
@@ -155,8 +155,8 @@ Deno.serve(async (req: Request) => {
         }
         rates[key] = value;
       }
-      const { error: ratesError } = await admin.from('staff_data').upsert({ user_id: userId, ...rates, custom_rates: customRates, updated_at: new Date().toISOString() });
-      if (ratesError) return reply(502, { error: 'Could not save rates. Check that the staff_data migration has been applied.' });
+      const { error: ratesError } = await admin.from('staff_rates').upsert({ user_id: userId, ...rates, custom_rates: customRates, updated_at: new Date().toISOString() });
+      if (ratesError) return reply(502, { error: 'Could not save rates. Check migrations 001, 002 and 005 have been applied.' });
       return reply(200, { saved: true });
     }
     if (body.action === 'remove') {

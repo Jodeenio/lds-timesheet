@@ -1,9 +1,9 @@
 begin;
-alter table public.staff_data add column custom_rates jsonb not null default '{}'::jsonb
+alter table public.staff_rates add column if not exists custom_rates jsonb not null default '{}'::jsonb
   check (jsonb_typeof(custom_rates) = 'object');
 
 -- Backfill the hidden overtime definitions for existing custom types.
-update public.staff_data
+update public.staff_rates
 set work_type_settings = jsonb_set(work_type_settings, '{customOvertimeTypes}',
   coalesce((select jsonb_agg(jsonb_build_object(
     'key', type->>'key' || ':overtime',
