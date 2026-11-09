@@ -172,9 +172,9 @@
             <label class="work-types-switch"><input id="customTypesEnabled" type="checkbox" role="switch"><span class="switch-track" aria-hidden="true"></span>Enable custom work types</label>
             <div id="customWorkTypes" class="staff-form" hidden>
               <p>Add up to three types for this employee only. Leave unused names blank.</p>
-              <label for="customType1">Custom type 1</label><input id="customType1" data-custom-slot="1" maxlength="60">
-              <label for="customType2">Custom type 2</label><input id="customType2" data-custom-slot="2" maxlength="60">
-              <label for="customType3">Custom type 3</label><input id="customType3" data-custom-slot="3" maxlength="60">
+              <div class="custom-type-row"><label class="work-type-check"><input type="checkbox" data-custom-enabled="1" aria-controls="customType1">Custom type 1</label><input id="customType1" data-custom-slot="1" aria-label="Custom type 1 name" placeholder="Work type name" maxlength="60" disabled></div>
+              <div class="custom-type-row"><label class="work-type-check"><input type="checkbox" data-custom-enabled="2" aria-controls="customType2">Custom type 2</label><input id="customType2" data-custom-slot="2" aria-label="Custom type 2 name" placeholder="Work type name" maxlength="60" disabled></div>
+              <div class="custom-type-row"><label class="work-type-check"><input type="checkbox" data-custom-enabled="3" aria-controls="customType3">Custom type 3</label><input id="customType3" data-custom-slot="3" aria-label="Custom type 3 name" placeholder="Work type name" maxlength="60" disabled></div>
             </div>
             <button class="primary" type="submit" disabled>Save work types</button>
           </form>

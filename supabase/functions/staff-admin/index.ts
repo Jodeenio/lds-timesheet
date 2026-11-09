@@ -42,24 +42,31 @@ Deno.serve(async (req: Request) => {
           !Array.isArray(settings.customTypes) || settings.customTypes.length > 3 ||
           settings.enabledDefaults.some((key: unknown) => !defaults.some(type => type.key === key)) ||
           new Set(settings.enabledDefaults).size !== settings.enabledDefaults.length) return reply(400, { error: 'Select valid work types and up to three custom types.' });
-        const customTypes: { key: string; label: string }[] = [];
+        const customTypes: { key: string; label: string; enabled: boolean }[] = [];
         for (const type of settings.customTypes) {
           if (!type || !/^custom:[123]$/.test(type.key) || typeof type.label !== 'string' || !type.label.trim() || type.label.trim().length > 60) return reply(400, { error: 'Custom work types need a name of up to 60 characters.' });
-          customTypes.push({ key: type.key, label: type.label.trim() });
+          if (type.enabled !== undefined && typeof type.enabled !== 'boolean') return reply(400, { error: 'Select a valid enabled setting for each custom type.' });
+          customTypes.push({ key: type.key, label: type.label.trim(), enabled: type.enabled !== false });
         }
-        const customOvertimeTypes = customTypes.map(type => ({ key: `${type.key}:overtime`, label: `${type.label} overtime`, hidden: true }));
+        const customOvertimeTypes = customTypes.map(type => ({ key: `${type.key}:overtime`, label: `${type.label} overtime`, hidden: true, enabled: type.enabled }));
         const labels = [...defaults.map(type => type.label.toLowerCase()), ...customTypes.map(type => type.label.toLowerCase()), ...customOvertimeTypes.map(type => type.label.toLowerCase())];
         if (new Set(customTypes.map(type => type.key)).size !== customTypes.length || new Set(labels).size !== labels.length) return reply(400, { error: 'Each custom work type must have a unique name.' });
-        if (!settings.enabledDefaults.length && (!settings.customEnabled || !customTypes.length)) return reply(400, { error: 'Enable at least one work type.' });
+        const enabledDefaults = settings.enabledDefaults.filter((key: string) => key !== 'public holiday overtime');
+        if (enabledDefaults.includes('public holiday')) enabledDefaults.push('public holiday overtime');
+        if (!enabledDefaults.length && (!settings.customEnabled || !customTypes.some(type => type.enabled))) return reply(400, { error: 'Enable at least one work type.' });
         const { error: saveError } = await admin.from('staff_rates').upsert({ user_id: userId,
-          work_type_settings: { enabledDefaults: settings.enabledDefaults, customEnabled: settings.customEnabled, customTypes, customOvertimeTypes }, updated_at: new Date().toISOString() });
+          work_type_settings: { enabledDefaults, customEnabled: settings.customEnabled, customTypes, customOvertimeTypes }, updated_at: new Date().toISOString() });
         if (saveError) return reply(502, { error: 'Could not save work types. Check the employee and migration.' });
         return reply(200, { saved: true });
       }
       const settings = row?.work_type_settings || { enabledDefaults: defaults.map(type => type.key), customEnabled: false, customTypes: [] };
-      const customOvertimeTypes = settings.customTypes.map((type: { key: string; label: string }) => ({ key: `${type.key}:overtime`, label: `${type.label} overtime`, hidden: true }));
-      const enabled = [...defaults.filter(type => settings.enabledDefaults.includes(type.key)), ...(settings.customEnabled ? [...settings.customTypes, ...customOvertimeTypes] : [])];
-      return reply(200, body.action === 'my-work-types' ? { types: enabled } : { defaults, settings });
+      // Apply the dependency to previously saved settings as well.
+      settings.enabledDefaults = settings.enabledDefaults.filter((key: string) => key !== 'public holiday overtime');
+      if (settings.enabledDefaults.includes('public holiday')) settings.enabledDefaults.push('public holiday overtime');
+      const enabledCustomTypes = settings.customTypes.filter((type: { enabled?: boolean }) => type.enabled !== false);
+      const customOvertimeTypes = enabledCustomTypes.map((type: { key: string; label: string }) => ({ key: `${type.key}:overtime`, label: `${type.label} overtime`, hidden: true }));
+      const enabled = [...defaults.filter(type => settings.enabledDefaults.includes(type.key)).map(type => ({ ...type, hidden: type.key === 'public holiday overtime' })), ...(settings.customEnabled ? [...enabledCustomTypes, ...customOvertimeTypes] : [])];
+      return reply(200, body.action === 'my-work-types' ? { types: enabled } : { defaults: defaults.filter(type => type.key !== 'public holiday overtime'), settings });
     }
     if (body.action === 'list') {
       const page = body.page ?? 1;

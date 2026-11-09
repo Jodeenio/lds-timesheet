@@ -40,6 +40,10 @@
 .staff-form { display: grid; gap: 12px; }
 .staff-form input { width: 100%; padding: 12px; border: 1px solid #bccdc3; border-radius: 8px; font: inherit; }
 .staff-form .work-type-check, .work-types-switch { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.custom-type-row { display: grid; gap: 8px; font-size: inherit; }
+.staff-form .work-type-check { font-size: inherit; font-weight: normal; }
+.work-type-check:has(input:not(:checked)) { color: #87928c; }
+.custom-type-row input[disabled] { color: #87928c; background: #f0f3f1; border-color: #dce2de; cursor: not-allowed; }
 .staff-form input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--green); }
 .work-types-switch { position: relative; padding-block: 12px; }
 .work-types-switch input { position: absolute; opacity: 0; }

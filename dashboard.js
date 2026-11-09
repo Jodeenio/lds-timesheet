@@ -66,7 +66,19 @@
       if (current === settingsRequest) $('#settingsMessage').textContent = error.message;
     }
   }
-  $('#customTypesEnabled').onchange = () => { $('#customWorkTypes').hidden = !$('#customTypesEnabled').checked; };
+  $('#customTypesEnabled').onchange = () => {
+    $('#customWorkTypes').hidden = !$('#customTypesEnabled').checked;
+    document.querySelectorAll('[data-custom-enabled]').forEach(checkbox => {
+      $(`#customType${checkbox.dataset.customEnabled}`).required = $('#customTypesEnabled').checked && checkbox.checked;
+    });
+  };
+  document.querySelectorAll('[data-custom-enabled]').forEach(checkbox => {
+    checkbox.onchange = () => {
+      const input = $(`#customType${checkbox.dataset.customEnabled}`);
+      input.disabled = !checkbox.checked;
+      input.required = $('#customTypesEnabled').checked && checkbox.checked;
+    };
+  });
   async function loadWorkTypes() {
     if (!selected || settingsBusy) return;
     const current = settingsRequest;
@@ -77,6 +89,7 @@
       if (current !== settingsRequest) return;
       $('#defaultWorkTypes').replaceChildren();
       for (const type of data.defaults) {
+        if (type.key === 'public holiday overtime') continue;
         const label = document.createElement('label');
         label.className = 'work-type-check';
         const checkbox = document.createElement('input');
@@ -89,7 +102,12 @@
       $('#customTypesEnabled').checked = data.settings.customEnabled;
       $('#customWorkTypes').hidden = !data.settings.customEnabled;
       document.querySelectorAll('[data-custom-slot]').forEach(input => {
-        input.value = data.settings.customTypes.find(type => type.key === `custom:${input.dataset.customSlot}`)?.label || '';
+        const type = data.settings.customTypes.find(type => type.key === `custom:${input.dataset.customSlot}`);
+        input.value = type?.label || '';
+        const checkbox = document.querySelector(`[data-custom-enabled="${input.dataset.customSlot}"]`);
+        checkbox.checked = !!type && type.enabled !== false;
+        input.disabled = !checkbox.checked;
+        input.required = data.settings.customEnabled && checkbox.checked;
       });
       workTypesLoaded = true;
       $('#workTypesForm').querySelector('button').disabled = false;
@@ -103,7 +121,7 @@
     if (!workTypesLoaded) return;
     const enabledDefaults = [...document.querySelectorAll('[data-default-type]:checked')].map(input => input.dataset.defaultType);
     const customTypes = [...document.querySelectorAll('[data-custom-slot]')].filter(input => input.value.trim())
-      .map(input => ({ key: `custom:${input.dataset.customSlot}`, label: input.value.trim() }));
+      .map(input => ({ key: `custom:${input.dataset.customSlot}`, label: input.value.trim(), enabled: document.querySelector(`[data-custom-enabled="${input.dataset.customSlot}"]`).checked }));
     void saveSettings({ action: 'save-work-types', settings: { enabledDefaults, customEnabled: $('#customTypesEnabled').checked, customTypes } }, 'Work types saved.', () => { ratesLoaded = false; });
   };
   async function loadRates() {
