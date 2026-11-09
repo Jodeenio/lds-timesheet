@@ -44,7 +44,9 @@
       }
       const breakdown = document.createElement('span');
       breakdown.className = 'submission-work-totals';
-      breakdown.textContent = [...workTotals.values()].map(type => `${type.label}: ${TempoTime.format(type.minutes)}`).join(' · ');
+      const abbreviations = { regular: 'R', overtime: 'O', 'public holiday': 'PH', 'public holiday overtime': 'PH-O' };
+      breakdown.textContent = [...workTotals.entries()].map(([key, type]) => `${abbreviations[key] || type.label}: ${TempoTime.format(type.minutes)}`).join(' · ');
+      breakdown.title = [...workTotals.values()].map(type => `${type.label}: ${TempoTime.format(type.minutes)}`).join(' · ');
       const statusLabel = document.createElement('span');
       statusLabel.className = `submission-status submission-status-${sheet.status}`;
       statusLabel.textContent = status;
@@ -65,7 +67,7 @@
       table.className = 'staff-table';
       const head = document.createElement('thead');
       const header = document.createElement('tr');
-      for (const text of ['Date', 'Work type', 'Start', 'End', 'Hours']) {
+      for (const text of ['Day', 'Work type', 'Start', 'End', 'Hours']) {
         const cell = document.createElement('th'); cell.scope = 'col'; cell.textContent = text; header.append(cell);
       }
       head.append(header); table.append(head);
@@ -73,7 +75,7 @@
       for (const [date, day] of Object.entries(sheet.days).sort(([a], [b]) => a.localeCompare(b))) {
         for (const shift of day.shifts) {
           const row = document.createElement('tr');
-          for (const text of [TempoTime.parseDate(date).toLocaleDateString('en-AU'), shift.typeLabel || shift.type, shift.start, shift.end + (shift.nextDay ? ' (+1 day)' : ''), TempoTime.format(shift.minutes)]) {
+          for (const text of [TempoTime.parseDate(date).toLocaleDateString('en-AU', { weekday: 'long' }), shift.typeLabel || shift.type, shift.start, shift.end + (shift.nextDay ? ' (+1 day)' : ''), TempoTime.format(shift.minutes)]) {
             const cell = document.createElement('td'); cell.textContent = text; row.append(cell);
           }
           body.append(row);
@@ -101,9 +103,10 @@
             root.querySelectorAll('button').forEach(item => { item.disabled = true; });
             $('#timesheetsMessage').textContent = 'Saving review...';
             try {
-              await call({ action: 'review-timesheet', id: sheet.id, status: nextStatus, reason, submittedAt: sheet.submitted_at });
+              await call({ action: 'review-timesheet', id: sheet.id, status: nextStatus, reason, submittedAt: sheet.submitted_at, revision: sheet.revision });
               if (current !== timesheetRequest) return;
               sheet.status = nextStatus;
+              sheet.revision++;
               sheet.denial_reason = reason;
               renderTimesheets();
               $('#timesheetsMessage').textContent = nextStatus === 'approved' ? 'Timesheet approved.' : 'Timesheet denied.';
@@ -114,7 +117,21 @@
         }
         card.append(actions);
       }
-      group.append(card);
+      const entry = document.createElement('div');
+      entry.className = 'submission-entry';
+      const menu = document.createElement('details');
+      menu.className = 'timesheet-menu';
+      const toggle = document.createElement('summary');
+      toggle.textContent = '\u22ee';
+      toggle.setAttribute('aria-label', `Timesheet options for ${sheet.employee_name}`);
+      const edit = document.createElement('a');
+      const editUrl = new URL('index.html', document.baseURI);
+      editUrl.searchParams.set('editTimesheet', sheet.id);
+      edit.href = editUrl.href;
+      edit.textContent = 'Edit timesheet';
+      menu.append(toggle, edit);
+      entry.append(card, menu);
+      group.append(entry);
     }
   }
   async function loadTimesheets(more = false) {

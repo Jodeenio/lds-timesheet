@@ -118,11 +118,14 @@
           <strong id="weeklyTotal">0h 00m</strong>
         </div>
       </section>
+      <p id="adminEditBanner" class="admin-edit-banner" hidden></p>
       <div class="below">
         <span>Blank days count as days off. Drafts save on this device. Submit your week for admin approval.</span>
         <button class="primary" id="submitWeek" type="button" disabled>Submit timesheet</button>
+        <a id="cancelAdminEdit" class="outline" href="dashboard/" hidden>Cancel and return to dashboard</a>
       </div>
       <p id="submissionStatus" role="status" aria-live="polite"></p>
+      <p id="adminAdjustmentNotice" class="admin-adjustment-notice" hidden>an admin has adjusted the timesheet</p>
       <button id="retrySubmission" class="outline" type="button" hidden>Retry loading submission</button>
       <p id="weekMessage" role="status">
       </p>

@@ -57,6 +57,16 @@
 .submission-status-pending { color: #b45309; }
 .submission-status-approved { color: #236956; }
 .submission-status-denied { color: #b42318; }
+.submission-entry { display: grid; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px; }
+.timesheet-menu { position: relative; padding-top: 12px; }
+.timesheet-menu summary { list-style: none; cursor: pointer; text-align: center; font-size: 24px; padding: 8px; }
+.timesheet-menu summary::-webkit-details-marker { display: none; }
+.timesheet-menu a { position: absolute; right: 0; top: 56px; z-index: 2; width: 160px; background: white; padding: 14px; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 12px #0002; }
+.admin-adjusted-shift { background: #f3edff; border-left: 3px solid #7c3aed; }
+.admin-adjusted-shift input, .admin-adjusted-shift select, .admin-adjusted-shift output { color: #6d28d9; }
+.admin-adjustment-notice, .admin-day-adjustment { color: #6d28d9; }
+.admin-day-adjustment { font-size: 12px; }
+.admin-edit-banner { padding: 14px; background: #f3edff; color: #6d28d9; border-radius: 8px; }
 .denial-reason { color: #b42318; white-space: pre-wrap; overflow-wrap: anywhere; }
 .submission-card .staff-table { margin-top: 16px; }
 .staff-form input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--green); }

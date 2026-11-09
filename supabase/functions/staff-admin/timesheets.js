@@ -53,7 +53,61 @@ export function validateDays(input, week, types) {
   return { days, total };
 }
 
+async function employeeTypes(admin, userId) {
+  const { data: defaults, error } = await admin.from('work_types').select('key,label');
+  const result = userId ? await admin.from('staff_rates').select('work_type_settings').eq('user_id', userId).maybeSingle() : { data: null };
+  if (error || result.error || !defaults?.length) throw new Error('Could not load employee work types.');
+  const config = result.data?.work_type_settings;
+  const keys = config?.enabledDefaults || defaults.map(type => type.key);
+  const types = defaults.filter(type => type.key === 'public holiday overtime' ? keys.includes('public holiday') : keys.includes(type.key))
+    .map(type => ({ ...type, hidden: type.key === 'public holiday overtime' }));
+  if (config?.customEnabled) for (const type of config.customTypes || []) {
+    if (type.enabled === false) continue;
+    types.push(type, { key: `${type.key}:overtime`, label: `${type.label} overtime`, hidden: true });
+  }
+  return types;
+}
+
+export function adjustmentMarks(before, after, previous = {}) {
+  const marks = structuredClone(previous);
+  for (const date of new Set([...Object.keys(before), ...Object.keys(after)])) {
+    const original = before[date]?.shifts || [], changed = after[date]?.shifts || [];
+    const signature = shift => JSON.stringify([shift?.start, shift?.end, shift?.nextDay, shift?.type]);
+    const indices = new Set(marks[date] || []);
+    for (let i = 0; i < Math.max(original.length, changed.length); i++) {
+      if (signature(original[i]) !== signature(changed[i])) indices.add(i);
+    }
+    if (indices.size) marks[date] = [...indices];
+  }
+  return marks;
+}
+
 export async function handleTimesheets({ admin, user, body, reply }) {
+  if (['admin-timesheet', 'adjust-timesheet', 'list-timesheets', 'review-timesheet'].includes(body.action) && user.app_metadata?.role !== 'admin') return reply(403, { error: 'Administrator access required.' });
+  if (['admin-timesheet', 'adjust-timesheet'].includes(body.action)) {
+    if (typeof body.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.id)) return reply(400, { error: 'Select a valid timesheet.' });
+    const { data: sheet, error } = await admin.from('timesheets').select('*').eq('id', body.id).maybeSingle();
+    if (error || !sheet) return reply(404, { error: 'Timesheet not found.' });
+    let types;
+    try { types = await employeeTypes(admin, sheet.user_id); } catch (error) { return reply(502, { error: error.message }); }
+    // Keep historical types available when an assignment has since been disabled.
+    for (const day of Object.values(sheet.days)) for (const shift of day.shifts) {
+      if (!types.some(type => type.key === shift.type)) types.push({ key: shift.type, label: shift.typeLabel || shift.type, hidden: shift.type.endsWith(':overtime') || shift.type === 'public holiday overtime' });
+    }
+    if (body.action === 'admin-timesheet') return reply(200, { timesheet: sheet, types });
+    if (!Number.isSafeInteger(body.revision) || body.revision !== sheet.revision) return reply(409, { error: 'This timesheet changed. Reload before editing again.' });
+    let validated;
+    try { validated = validateDays(body.days, sheet.week_start, types); } catch (error) { return reply(400, { error: error.message }); }
+    const now = new Date().toISOString();
+    const marks = adjustmentMarks(sheet.days, validated.days, sheet.adjusted_shifts);
+    const history = [...(sheet.adjustment_history || []), { at: now, by: user.id, before: sheet.days, after: validated.days }];
+    const { data, error: saveError } = await admin.from('timesheets').update({ days: validated.days, total_minutes: validated.total,
+      adjusted_at: now, adjusted_by: user.id, adjusted_shifts: marks, adjustment_history: history, revision: sheet.revision + 1 })
+      .eq('id', sheet.id).eq('revision', sheet.revision).select('id');
+    if (saveError) return reply(502, { error: 'Could not save adjustments. Check migration 008 has been applied.' });
+    if (!data?.length) return reply(409, { error: 'This timesheet changed while you were editing. Reload before saving.' });
+    return reply(200, { saved: true });
+  }
   if (body.action === 'list-timesheets') {
     const page = body.page ?? 1;
     if (!Number.isSafeInteger(page) || page < 1 || page > 10000) return reply(400, { error: 'Invalid page.' });
@@ -65,7 +119,8 @@ export async function handleTimesheets({ admin, user, body, reply }) {
     if (typeof body.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.id) || !['approved', 'denied'].includes(body.status) || typeof body.submittedAt !== 'string') return reply(400, { error: 'Select a valid timesheet and review action.' });
     const reason = body.status === 'denied' && typeof body.reason === 'string' ? body.reason.trim() : null;
     if (body.status === 'denied' && (!reason || reason.length > 1000)) return reply(400, { error: 'Enter a denial reason between 1 and 1000 characters.' });
-    const { data, error } = await admin.from('timesheets').update({ status: body.status, denial_reason: reason, reviewed_by: user.id, reviewed_at: new Date().toISOString() }).eq('id', body.id).eq('status', 'pending').eq('submitted_at', body.submittedAt).select('id');
+    if (!Number.isSafeInteger(body.revision)) return reply(400, { error: 'Refresh the timesheets list before reviewing.' });
+    const { data, error } = await admin.from('timesheets').update({ status: body.status, denial_reason: reason, reviewed_by: user.id, reviewed_at: new Date().toISOString(), revision: body.revision + 1 }).eq('id', body.id).eq('status', 'pending').eq('submitted_at', body.submittedAt).eq('revision', body.revision).select('id');
     if (error) return reply(502, { error: 'Could not review timesheet. Try again.' });
     if (!data.length) return reply(409, { error: 'This timesheet has changed or was already reviewed. Refresh the list.' });
     return reply(200, { saved: true });
@@ -89,7 +144,7 @@ export async function handleTimesheets({ admin, user, body, reply }) {
   try { validated = validateDays(body.days, body.week, types); } catch (error) { return reply(400, { error: error.message }); }
   const payload = { user_id: user.id, employee_name: user.user_metadata?.full_name || user.email || 'Staff', employee_email: user.email || '', week_start: body.week, days: validated.days, total_minutes: validated.total, status: 'pending', submitted_at: new Date().toISOString(), reviewed_at: null, reviewed_by: null, denial_reason: null };
   const query = existing
-    ? admin.from('timesheets').update(payload).eq('id', existing.id).eq('status', 'denied').eq('submitted_at', existing.submitted_at)
+    ? admin.from('timesheets').update({ ...payload, revision: existing.revision + 1 }).eq('id', existing.id).eq('status', 'denied').eq('submitted_at', existing.submitted_at).eq('revision', existing.revision)
     : admin.from('timesheets').insert(payload);
   const { data, error } = await query.select('*');
   if (error || !data?.length) return reply(409, { error: 'Could not submit. Refresh this week to check whether it was already submitted, then try again.' });

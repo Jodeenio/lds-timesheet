@@ -7,10 +7,13 @@ let storageError = false;
 let staffId = null;
 let workTypes = [], workTypesReady = false, workTypesRequest = 0, staffClient = null;
 let submission = null, submissionReady = false, submissionRequest = 0, submitting = false;
-const locked = () => !submissionReady || submitting || ['pending', 'approved'].includes(submission?.status);
+const adminEditId = new URLSearchParams(location.search).get('editTimesheet');
+const adminEditing = !!adminEditId;
+const locked = () => !submissionReady || submitting || (!adminEditing && ['pending', 'approved'].includes(submission?.status));
 function submissionText() {
   if (submitting) return 'Submitting timesheet...';
   if (!submissionReady) return 'Loading submission status...';
+  if (adminEditing) return 'Admin editing. Save changes to update the submitted timesheet and return to the dashboard.';
   return submission?.status === 'approved' ? 'Approved. This week is locked.'
     : submission?.status === 'pending' ? 'Submitted — awaiting admin approval. This week is locked.'
     : submission?.status === 'denied' ? `Denied. ${submission.denial_reason || ''} Update your shifts and submit again.`
@@ -26,6 +29,7 @@ async function submissionCall(body) {
   return result;
 }
 async function loadSubmission() {
+  if (adminEditing) { void loadAdminTimesheet(); return; }
   const current = ++submissionRequest, userId = staffId, weekKey = T.key(week);
   submission = null;
   submissionReady = false;
@@ -37,7 +41,7 @@ async function loadSubmission() {
     if (current !== submissionRequest || userId !== staffId || weekKey !== T.key(week)) return;
     submission = result.timesheet;
     submissionReady = true;
-    if (submission && (submission.status !== 'denied' || !days().some(d => data.days[T.key(d)]))) {
+    if (submission && (submission.adjusted_at || submission.status !== 'denied' || !days().some(d => data.days[T.key(d)]))) {
       for (const date of days()) delete data.days[T.key(date)];
       Object.assign(data.days, submission.days);
       persist();
@@ -50,6 +54,32 @@ async function loadSubmission() {
   }
 }
 $('#retrySubmission').onclick = () => { void loadSubmission(); };
+async function loadAdminTimesheet() {
+  const current = ++submissionRequest;
+  submissionReady = false;
+  workTypesReady = false;
+  $('#retrySubmission').hidden = true;
+  render();
+  if (!staffClient) return;
+  try {
+    const result = await submissionCall({ action: 'admin-timesheet', id: adminEditId });
+    if (current !== submissionRequest) return;
+    submission = result.timesheet;
+    workTypes = result.types;
+    workTypesReady = true;
+    submissionReady = true;
+    week = T.parseDate(submission.week_start);
+    data = { days: structuredClone(submission.days) };
+    $('#adminEditBanner').hidden = false;
+    $('#adminEditBanner').textContent = `Editing ${submission.employee_name}'s timesheet. Status stays ${submission.status} when saved.`;
+    $('#cancelAdminEdit').hidden = false;
+    render();
+  } catch (error) {
+    if (current !== submissionRequest) return;
+    $('#submissionStatus').textContent = error.message;
+    $('#retrySubmission').hidden = false;
+  }
+}
 const defaultLabels = { regular: 'Regular', overtime: 'Overtime', 'public holiday': 'Public holiday', 'public holiday overtime': 'Public holiday overtime' };
 const typeLabel = shift => shift.typeLabel || workTypes.find(type => type.key === shift.type)?.label || defaultLabels[shift.type] || shift.type;
 function emptyShift() {
@@ -65,6 +95,10 @@ function typeOptions(shift) {
 }
 document.addEventListener('staff-client', event => {
   staffClient = event.detail?.client || null;
+  if (adminEditing) {
+    if (!submissionReady || !staffClient) void loadAdminTimesheet();
+    return;
+  }
   void loadWorkTypes();
 });
 async function loadWorkTypes() {
@@ -106,7 +140,7 @@ document.addEventListener('staff-session', event => {
   data = { days: {} };
   storageError = false;
   week = T.monday(new Date());
-  if (staffId) {
+  if (staffId && !adminEditing) {
     try {
       const saved = JSON.parse(localStorage.getItem(storageKey()));
       if (saved?.days && typeof saved.days === 'object' && !Array.isArray(saved.days)) data = saved;
@@ -133,6 +167,7 @@ function days() {
 }
 
 function persist() {
+  if (adminEditing) return true;
   if (!staffId) return false;
   try {
     localStorage.setItem(storageKey(), JSON.stringify(data));
@@ -178,7 +213,7 @@ function render() {
       `</div>` +
       `</div>` +
       `<div class="shifts">${r.shifts.map((shift, j) =>
-      `<div class="shiftrow" data-shift="${j}">` +
+      `<div class="shiftrow ${submission?.adjusted_shifts?.[k]?.includes(j) ? 'admin-adjusted-shift' : ''}" data-shift="${j}">` +
       `<span class="shiftlabel">Shift ${j + 1}</span>` +
       `<label class="worktype">Work type<select data-type aria-label="${k} shift ${j + 1} work type">` +
       typeOptions(shift) +
@@ -207,9 +242,18 @@ function render() {
 
   $('#days').querySelectorAll('input, select, button').forEach(element => { element.disabled = !workTypesReady || locked(); });
   $('#submitWeek').disabled = !workTypesReady || locked();
-  $('#submitWeek').textContent = submitting ? 'Submitting...' : 'Submit timesheet';
+  $('#submitWeek').textContent = submitting ? 'Saving...' : adminEditing ? 'Save changes' : 'Submit timesheet';
+  $('#adminAdjustmentNotice').hidden = !submission?.adjusted_at;
+  document.querySelectorAll('.daycard').forEach(card => {
+    if (submission?.adjusted_shifts?.[card.dataset.date]?.length) {
+      const notice = document.createElement('span');
+      notice.className = 'admin-day-adjustment';
+      notice.textContent = 'Adjusted by admin';
+      card.querySelector('.dayheading').append(notice);
+    }
+  });
   $('#submissionStatus').textContent = submissionText();
-  for (const id of ['previous', 'next', 'thisWeek', 'weekPicker']) $(`#${id}`).disabled = submitting;
+  for (const id of ['previous', 'next', 'thisWeek', 'weekPicker']) $(`#${id}`).disabled = submitting || adminEditing;
 
   updateTotals();
   $('#weekMessage').textContent = storageError
@@ -350,13 +394,16 @@ $('#submitWeek').onclick = async () => {
   if (!Object.values(submittedDays).some(day => day.shifts.some(shift => shift.start || shift.end))) {
     $('#weekMessage').textContent = 'Enter at least one shift before submitting.'; return;
   }
-  if (!window.confirm('Submit this week for admin approval? You can edit it again if an admin denies it.')) return;
+  if (!window.confirm(adminEditing ? 'Save these admin adjustments and return to the dashboard?' : 'Submit this week for admin approval? You can edit it again if an admin denies it.')) return;
   const userId = staffId, weekKey = T.key(week);
   submitting = true;
   render();
   try {
-    const result = await submissionCall({ action: 'submit-timesheet', week: weekKey, days: submittedDays });
+    const result = await submissionCall(adminEditing
+      ? { action: 'adjust-timesheet', id: adminEditId, revision: submission.revision, days: submittedDays }
+      : { action: 'submit-timesheet', week: weekKey, days: submittedDays });
     if (userId !== staffId || weekKey !== T.key(week)) return;
+    if (adminEditing) { location.assign(new URL('dashboard/', document.baseURI).href); return; }
     submission = result.timesheet;
     submissionReady = true;
     Object.assign(data.days, submission.days);

@@ -12,6 +12,7 @@
   const accountToggle = document.querySelector('#accountToggle');
   const config = window.LDS_SUPABASE;
   const dashboardPage = document.body.dataset.page === 'dashboard';
+  const editingTimesheet = !dashboardPage && new URLSearchParams(location.search).has('editTimesheet');
   const staffUrl = new URL('index.html', document.baseURI);
   const dashboardUrl = new URL('dashboard/', document.baseURI);
   let client;
@@ -98,8 +99,12 @@
         location.replace(new URL('welcome/', document.baseURI).href);
         return;
       }
-      if (admin !== dashboardPage) {
+      if (admin !== dashboardPage && !(admin && editingTimesheet)) {
         location.replace(admin ? dashboardUrl.href : staffUrl.href);
+        return;
+      }
+      if (editingTimesheet && !admin) {
+        location.replace(staffUrl.href);
         return;
       }
       showSession({ user: data.user });

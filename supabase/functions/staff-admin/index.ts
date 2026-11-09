@@ -30,7 +30,7 @@ Deno.serve(async (req: Request) => {
     try { body = await req.json(); } catch { return reply(400, { error: 'Invalid request.' }); }
     if (!body || typeof body !== 'object') return reply(400, { error: 'Invalid request.' });
     if (!['my-work-types', 'my-timesheet', 'submit-timesheet'].includes(body.action) && user.app_metadata?.role !== 'admin') return reply(403, { error: 'Administrator access required.' });
-    if (['my-timesheet', 'submit-timesheet', 'list-timesheets', 'review-timesheet'].includes(body.action)) return await handleTimesheets({ admin, user, body, reply });
+    if (['my-timesheet', 'submit-timesheet', 'list-timesheets', 'review-timesheet', 'admin-timesheet', 'adjust-timesheet'].includes(body.action)) return await handleTimesheets({ admin, user, body, reply });
     if (['my-work-types', 'work-types', 'save-work-types'].includes(body.action)) {
       const userId = body.action === 'my-work-types' ? user.id : body.userId;
       if (typeof userId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) return reply(400, { error: 'Select a valid staff account.' });
