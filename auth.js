@@ -69,6 +69,7 @@
     });
     document.querySelector('#staffEmail').textContent = user?.email || '';
     document.dispatchEvent(new CustomEvent('staff-session', { detail: user }));
+    if (!dashboardPage) document.dispatchEvent(new CustomEvent('staff-client', { detail: user ? { user, client } : null }));
     if (dashboardPage) {
       document.dispatchEvent(new CustomEvent('admin-session', { detail: user ? { user, client } : null }));
     }

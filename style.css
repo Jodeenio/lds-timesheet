@@ -39,6 +39,15 @@
 .staff-table .staff-more { font-size: 24px; min-width: 44px; min-height: 44px; padding: 2px 12px; }
 .staff-form { display: grid; gap: 12px; }
 .staff-form input { width: 100%; padding: 12px; border: 1px solid #bccdc3; border-radius: 8px; font: inherit; }
+.staff-form .work-type-check, .work-types-switch { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.staff-form input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--green); }
+.work-types-switch { position: relative; padding-block: 12px; }
+.work-types-switch input { position: absolute; opacity: 0; }
+.switch-track { width: 42px; height: 24px; border-radius: 20px; background: #a5b4ac; padding: 3px; flex-shrink: 0; }
+.switch-track::before { content: ''; display: block; width: 18px; height: 18px; background: white; border-radius: 50%; transition: transform .15s; }
+.work-types-switch input:checked + .switch-track { background: var(--green); }
+.work-types-switch input:checked + .switch-track::before { transform: translateX(18px); }
+.work-types-switch input:focus-visible + .switch-track { outline: 2px solid var(--green); outline-offset: 3px; }
 button:disabled { opacity: .6; cursor: wait; }
 @media (max-width: 600px) {
   .auth-card { margin: 140px 16px 40px; padding: 24px; }

@@ -56,18 +56,25 @@
     return { minutes: total, complete: true, error: '' };
   }
 
+  function overtimeType(type) {
+    if (type === 'regular') return 'overtime';
+    if (type === 'public holiday') return 'public holiday overtime';
+    return /^custom:[123]$/.test(type) ? `${type}:overtime` : null;
+  }
+
   function splitOvertime(row, following) {
     const result = duration(row);
-    if (!result.complete || result.minutes <= 480 || ['overtime', 'public holiday overtime'].includes(row.type)) return [row];
-    const overtimeType = row.type === 'public holiday' ? 'public holiday overtime' : 'overtime';
+    if (!result.complete || result.minutes <= 480 || !overtimeType(row.type)) return [row];
+    const overtimeKey = overtimeType(row.type);
     const start = minutes(row.start);
     const boundary = start + 480;
     const clock = n => `${String(Math.floor(n % 1440 / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
     const shifts = [
       { ...row, end: clock(boundary), nextDay: boundary >= 1440 },
-      { start: clock(boundary), end: row.end, nextDay: Math.floor((start + result.minutes) / 1440) > Math.floor(boundary / 1440), type: overtimeType }
+      { start: clock(boundary), end: row.end, nextDay: Math.floor((start + result.minutes) / 1440) > Math.floor(boundary / 1440), type: overtimeKey,
+        typeLabel: /^custom:[123]$/.test(row.type) && row.typeLabel ? `${row.typeLabel} overtime` : '' }
     ];
-    if (following?.type === overtimeType && following.start === row.end && duration(following).complete) {
+    if (following?.type === overtimeKey && following.start === row.end && duration(following).complete) {
       const overtime = shifts[1];
       const total = duration(overtime).minutes + duration(following).minutes;
       // Keep the existing overtime end time when extending its start backwards.
@@ -80,9 +87,8 @@
   }
 
   function rebalanceOvertime(row, following) {
-    if (!['regular', 'public holiday'].includes(row.type)) return null;
-    const overtimeType = row.type === 'public holiday' ? 'public holiday overtime' : 'overtime';
-    if (following?.type !== overtimeType || row.end !== following.start) return null;
+    const overtimeKey = overtimeType(row.type);
+    if (!overtimeKey || following?.type !== overtimeKey || row.end !== following.start) return null;
     const regular = duration(row), overtime = duration(following);
     if (!regular.complete || !overtime.complete) return null;
     const total = regular.minutes + overtime.minutes;
@@ -98,7 +104,8 @@
         start: s.start || '',
         end: s.end || '',
         nextDay: !!s.nextDay,
-        type: ['regular', 'public holiday', 'overtime', 'public holiday overtime'].includes(s.type ?? row.type) ? (s.type ?? row.type) : 'regular'
+        type: typeof (s.type ?? row.type) === 'string' ? (s.type ?? row.type) : 'regular',
+        typeLabel: typeof s.typeLabel === 'string' ? s.typeLabel : ''
       }))
     };
   }
@@ -117,6 +124,6 @@
     return `${Math.floor(n / 60)}h ${String(n % 60).padStart(2, '0')}m`;
   }
 
-  root.TempoTime = { key, parseDate, monday, shift, duration, splitOvertime, rebalanceOvertime, normalizeDay, dayTotal, format };
+  root.TempoTime = { key, parseDate, monday, shift, duration, overtimeType, splitOvertime, rebalanceOvertime, normalizeDay, dayTotal, format };
   if (typeof module !== 'undefined') module.exports = root.TempoTime;
 })(typeof window !== 'undefined' ? window : globalThis);

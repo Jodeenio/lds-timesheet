@@ -24,11 +24,43 @@ Deno.serve(async (req: Request) => {
     });
     const { data: { user }, error } = await admin.auth.getUser(authorization.slice(7));
     if (error || !user) return reply(401, { error: 'Your session has expired. Sign in again.' });
-    if (user.app_metadata?.role !== 'admin') return reply(403, { error: 'Administrator access required.' });
 
     let body;
     try { body = await req.json(); } catch { return reply(400, { error: 'Invalid request.' }); }
     if (!body || typeof body !== 'object') return reply(400, { error: 'Invalid request.' });
+    if (body.action !== 'my-work-types' && user.app_metadata?.role !== 'admin') return reply(403, { error: 'Administrator access required.' });
+    if (['my-work-types', 'work-types', 'save-work-types'].includes(body.action)) {
+      const userId = body.action === 'my-work-types' ? user.id : body.userId;
+      if (typeof userId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) return reply(400, { error: 'Select a valid staff account.' });
+      const { data: defaults, error: defaultsError } = await admin.from('work_types').select('key,label').order('sort_order');
+      if (defaultsError || !defaults?.length) return reply(502, { error: 'Could not load default work types. Check migration 004 has been applied.' });
+      const { data: row, error: settingsError } = await admin.from('staff_data').select('work_type_settings').eq('user_id', userId).maybeSingle();
+      if (settingsError) return reply(502, { error: 'Could not load employee work types. Check the staff_data migration.' });
+      if (body.action === 'save-work-types') {
+        const settings = body.settings;
+        if (!settings || !Array.isArray(settings.enabledDefaults) || typeof settings.customEnabled !== 'boolean' ||
+          !Array.isArray(settings.customTypes) || settings.customTypes.length > 3 ||
+          settings.enabledDefaults.some((key: unknown) => !defaults.some(type => type.key === key)) ||
+          new Set(settings.enabledDefaults).size !== settings.enabledDefaults.length) return reply(400, { error: 'Select valid work types and up to three custom types.' });
+        const customTypes: { key: string; label: string }[] = [];
+        for (const type of settings.customTypes) {
+          if (!type || !/^custom:[123]$/.test(type.key) || typeof type.label !== 'string' || !type.label.trim() || type.label.trim().length > 60) return reply(400, { error: 'Custom work types need a name of up to 60 characters.' });
+          customTypes.push({ key: type.key, label: type.label.trim() });
+        }
+        const customOvertimeTypes = customTypes.map(type => ({ key: `${type.key}:overtime`, label: `${type.label} overtime`, hidden: true }));
+        const labels = [...defaults.map(type => type.label.toLowerCase()), ...customTypes.map(type => type.label.toLowerCase()), ...customOvertimeTypes.map(type => type.label.toLowerCase())];
+        if (new Set(customTypes.map(type => type.key)).size !== customTypes.length || new Set(labels).size !== labels.length) return reply(400, { error: 'Each custom work type must have a unique name.' });
+        if (!settings.enabledDefaults.length && (!settings.customEnabled || !customTypes.length)) return reply(400, { error: 'Enable at least one work type.' });
+        const { error: saveError } = await admin.from('staff_data').upsert({ user_id: userId,
+          work_type_settings: { enabledDefaults: settings.enabledDefaults, customEnabled: settings.customEnabled, customTypes, customOvertimeTypes }, updated_at: new Date().toISOString() });
+        if (saveError) return reply(502, { error: 'Could not save work types. Check the employee and migration.' });
+        return reply(200, { saved: true });
+      }
+      const settings = row?.work_type_settings || { enabledDefaults: defaults.map(type => type.key), customEnabled: false, customTypes: [] };
+      const customOvertimeTypes = settings.customTypes.map((type: { key: string; label: string }) => ({ key: `${type.key}:overtime`, label: `${type.label} overtime`, hidden: true }));
+      const enabled = [...defaults.filter(type => settings.enabledDefaults.includes(type.key)), ...(settings.customEnabled ? [...settings.customTypes, ...customOvertimeTypes] : [])];
+      return reply(200, body.action === 'my-work-types' ? { types: enabled } : { defaults, settings });
+    }
     if (body.action === 'list') {
       const page = body.page ?? 1;
       if (!Number.isSafeInteger(page) || page < 1 || page > 10000) return reply(400, { error: 'Invalid page.' });
@@ -45,7 +77,7 @@ Deno.serve(async (req: Request) => {
         hasMore: page * 50 < data.total,
       });
     }
-    if (['details', 'update', 'rates', 'save-rates', 'reset-password'].includes(body.action)) {
+    if (['details', 'update', 'rates', 'save-rates', 'reset-password', 'resend-invite'].includes(body.action)) {
       const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
       if (!/^[0-9a-f-]{36}$/i.test(userId)) return reply(400, { error: 'Select a valid staff account.' });
       const { data: target, error: targetError } = await admin.auth.admin.getUserById(userId);
@@ -56,7 +88,30 @@ Deno.serve(async (req: Request) => {
         const parts = (metadata.full_name || '').trim().split(/\s+/);
         return reply(200, { id: staff.id, firstName: metadata.first_name ?? parts.shift() ?? '',
           lastName: metadata.last_name ?? parts.join(' '), email: staff.email || '', phone: metadata.phone || '',
+          canResendInvite: !metadata.onboarding_complete,
           removable: staff.id !== user.id && staff.app_metadata?.role !== 'admin' });
+      }
+      if (body.action === 'resend-invite') {
+        if (staff.user_metadata?.onboarding_complete) return reply(400, { error: 'This employee has already completed setup.' });
+        const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+        if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return reply(400, { error: 'Enter a valid staff email address.' });
+        let recipient = staff;
+        const emailChanged = email !== staff.email?.toLowerCase();
+        if (emailChanged) {
+          const { data: updated, error: updateError } = await admin.auth.admin.updateUserById(userId, { email });
+          if (updateError || !updated.user) return reply(400, { error: 'Could not update the email. It may already belong to another account. No invitation was sent.' });
+          recipient = updated.user;
+        }
+        const redirectTo = new URL('welcome/', appUrl.endsWith('/') ? appUrl : `${appUrl}/`).href;
+        // Confirmed users cannot be invited again. Send an existing-account
+        // sign-in link to the same setup page without creating another user.
+        const result = recipient.email_confirmed_at
+          ? await admin.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirectTo } })
+          : await admin.auth.admin.inviteUserByEmail(email, { redirectTo });
+        if (result.error) return reply(502, { error: emailChanged
+          ? 'The email address was updated, but the invitation could not be sent. Check email delivery and try resending.'
+          : 'Could not resend the invitation. Check email delivery or wait before trying again.' });
+        return reply(200, { sent: true, email });
       }
       if (body.action === 'update') {
         const firstName = typeof body.firstName === 'string' ? body.firstName.trim() : '';
@@ -80,11 +135,19 @@ Deno.serve(async (req: Request) => {
         return reply(200, { sent: true });
       }
       if (body.action === 'rates') {
-        const { data, error: ratesError } = await admin.from('staff_rates').select('regular,overtime,public_holiday,public_holiday_overtime').eq('user_id', userId).maybeSingle();
-        if (ratesError) return reply(502, { error: 'Could not load rates. Check that the staff_rates migration has been applied.' });
-        return reply(200, { rates: data || {} });
+        const { data, error: ratesError } = await admin.from('staff_data').select('regular,overtime,public_holiday,public_holiday_overtime,custom_rates,work_type_settings').eq('user_id', userId).maybeSingle();
+        if (ratesError) return reply(502, { error: 'Could not load rates. Check that the staff_data migration has been applied.' });
+        const { custom_rates = {}, work_type_settings, ...rates } = data || {};
+        const customTypes = (work_type_settings?.customTypes || []).flatMap((type: { key: string; label: string }) => [type, { key: `${type.key}:overtime`, label: `${type.label} overtime` }]);
+        return reply(200, { rates, customRates: custom_rates, customTypes });
       }
       const rates: Record<string, number | null> = {};
+      const customRates = body.customRates;
+      if (!customRates || typeof customRates !== 'object' || Array.isArray(customRates) ||
+        Object.entries(customRates).some(([key, value]) => !/^custom:[123](:overtime)?$/.test(key) ||
+          (value !== null && (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 99999999.99 || Math.abs(value * 100 - Math.round(value * 100)) > 0.00001)))) {
+        return reply(400, { error: 'Enter valid custom rates with up to two decimal places, or leave blank.' });
+      }
       for (const key of ['regular', 'overtime', 'public_holiday', 'public_holiday_overtime']) {
         const value = body.rates?.[key];
         if (value !== null && (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 99999999.99 || Math.abs(value * 100 - Math.round(value * 100)) > 0.00001)) {
@@ -92,8 +155,8 @@ Deno.serve(async (req: Request) => {
         }
         rates[key] = value;
       }
-      const { error: ratesError } = await admin.from('staff_rates').upsert({ user_id: userId, ...rates, updated_at: new Date().toISOString() });
-      if (ratesError) return reply(502, { error: 'Could not save rates. Check that the staff_rates migration has been applied.' });
+      const { error: ratesError } = await admin.from('staff_data').upsert({ user_id: userId, ...rates, custom_rates: customRates, updated_at: new Date().toISOString() });
+      if (ratesError) return reply(502, { error: 'Could not save rates. Check that the staff_data migration has been applied.' });
       return reply(200, { saved: true });
     }
     if (body.action === 'remove') {

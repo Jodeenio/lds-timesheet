@@ -5,12 +5,56 @@ const $ = s => document.querySelector(s),
 let data = { days: {} };
 let storageError = false;
 let staffId = null;
+let workTypes = [], workTypesReady = false, workTypesRequest = 0, staffClient = null;
+const defaultLabels = { regular: 'Regular', overtime: 'Overtime', 'public holiday': 'Public holiday', 'public holiday overtime': 'Public holiday overtime' };
+const typeLabel = shift => shift.typeLabel || workTypes.find(type => type.key === shift.type)?.label || defaultLabels[shift.type] || shift.type;
+function emptyShift() {
+  const type = workTypes.find(type => !type.hidden);
+  return { start: '', end: '', nextDay: false, type: type?.key || '', typeLabel: type?.label || '' };
+}
+function typeOptions(shift) {
+  const hidden = workTypes.find(type => type.key === shift.type)?.hidden;
+  if (hidden) return `<option value="${escape(shift.type)}" selected hidden disabled>${escape(typeLabel(shift))}</option>` + workTypes.filter(type => !type.hidden).map(type => `<option value="${escape(type.key)}">${escape(type.label)}</option>`).join('');
+  const available = workTypes.some(type => type.key === shift.type);
+  const retained = available ? '' : `<option value="${escape(shift.type)}" selected disabled>${escape(typeLabel(shift) || 'Select a work type')} (unavailable)</option>`;
+  return retained + workTypes.filter(type => !type.hidden).map(type => `<option value="${escape(type.key)}" ${type.key === shift.type ? 'selected' : ''}>${escape(type.label)}</option>`).join('');
+}
+document.addEventListener('staff-client', event => {
+  staffClient = event.detail?.client || null;
+  void loadWorkTypes();
+});
+async function loadWorkTypes() {
+  const current = ++workTypesRequest;
+  const userId = staffId;
+  workTypesReady = false;
+  workTypes = [];
+  $('#retryWorkTypes').hidden = true;
+  $('#workTypesMessage').textContent = staffClient ? 'Loading your work types...' : '';
+  render();
+  if (!staffClient || !userId) return;
+  try {
+    const { data: result, error } = await staffClient.functions.invoke('staff-admin', { body: { action: 'my-work-types' } });
+    if (current !== workTypesRequest || userId !== staffId) return;
+    if (error || !Array.isArray(result?.types) || !result.types.length) throw error || new Error('No enabled work types');
+    workTypes = result.types;
+    workTypesReady = true;
+    $('#workTypesMessage').textContent = '';
+    render();
+  } catch {
+    if (current !== workTypesRequest) return;
+    $('#workTypesMessage').textContent = 'Could not load your enabled work types. Retry or contact your administrator.';
+    $('#retryWorkTypes').hidden = false;
+  }
+}
+$('#retryWorkTypes').onclick = () => { void loadWorkTypes(); };
 const storageKey = () => `lds-weekly-v1:${staffId}`;
 
 document.addEventListener('staff-session', event => {
   const nextId = event.detail?.id || null;
   if (nextId === staffId) return;
   staffId = nextId;
+  workTypesReady = false;
+  workTypes = [];
   data = { days: {} };
   storageError = false;
   week = T.monday(new Date());
@@ -56,6 +100,7 @@ function persist() {
 }
 
 function getDay(k) {
+  if (!data.days[k]) return { shifts: [emptyShift()] };
   return T.normalizeDay(data.days[k]);
 }
 
@@ -88,10 +133,7 @@ function render() {
       `<div class="shiftrow" data-shift="${j}">` +
       `<span class="shiftlabel">Shift ${j + 1}</span>` +
       `<label class="worktype">Work type<select data-type aria-label="${k} shift ${j + 1} work type">` +
-      (shift.type === 'public holiday overtime' ? '<option value="public holiday overtime" selected hidden disabled>Public holiday overtime</option>' : '') +
-      `<option value="regular" ${shift.type === 'regular' ? 'selected' : ''}>Regular</option>` +
-      `<option value="overtime" ${shift.type === 'overtime' ? 'selected' : ''}>Overtime</option>` +
-      `<option value="public holiday" ${shift.type === 'public holiday' ? 'selected' : ''}>Public holiday</option>` +
+      typeOptions(shift) +
       `</select>` +
       `</label>` +
       `<div class="field">` +
@@ -114,6 +156,8 @@ function render() {
       `<button class="addshift" data-add>＋ Add shift</button>` +
       `</section>`;
   }).join('');
+
+  $('#days').querySelectorAll('input, select, button').forEach(element => { element.disabled = !workTypesReady; });
 
   updateTotals();
   $('#weekMessage').textContent = storageError
@@ -146,6 +190,7 @@ function updateTotals() {
 }
 
 function handleEdit(e) {
+  if (!workTypesReady) return;
   const field = e.target.dataset.field,
     isType = e.target.matches('[data-type]');
   if (!field && !isType) return;
@@ -154,7 +199,9 @@ function handleEdit(e) {
   let i = Number(e.target.closest('.shiftrow').dataset.shift);
 
   if (isType) {
+    if (!workTypes.some(type => type.key === e.target.value && !type.hidden)) return;
     r.shifts[i].type = e.target.value;
+    r.shifts[i].typeLabel = workTypes.find(type => type.key === e.target.value).label;
   } else {
     r.shifts[i][field] = field === 'nextDay' ? e.target.checked : e.target.value;
   }
@@ -168,10 +215,13 @@ function handleEdit(e) {
 $('#days').addEventListener('input', handleEdit);
 $('#days').addEventListener('change', e => {
   if (!e.target.matches('[data-type], [data-field]')) return;
+  if (!workTypesReady) return;
   handleEdit(e);
   const k = e.target.closest('.daycard').dataset.date;
   const i = Number(e.target.closest('.shiftrow').dataset.shift);
   const r = getDay(k);
+  const overtimeType = T.overtimeType(r.shifts[i].type);
+  if (!workTypes.some(type => type.key === overtimeType) || !workTypes.some(type => type.key === r.shifts[i].type)) return;
   const following = r.shifts[i + 1];
   const rebalanced = e.target.dataset.field === 'start'
     ? T.rebalanceOvertime(r.shifts[i], following) : null;
@@ -194,17 +244,18 @@ $('#days').addEventListener('click', e => {
   const add = e.target.closest('[data-add]'),
     remove = e.target.closest('[data-remove]');
   if (!add && !remove) return;
+  if (!workTypesReady) return;
 
   const k = e.target.closest('.daycard').dataset.date, r = getDay(k);
   let focusIndex;
 
   if (add) {
-    r.shifts.push({ start: '', end: '', nextDay: false, type: 'regular' });
+    r.shifts.push(emptyShift());
     focusIndex = r.shifts.length - 1;
   } else {
     r.shifts.splice(Number(remove.dataset.remove), 1);
     if (!r.shifts.length) {
-      r.shifts.push({ start: '', end: '', nextDay: false, type: 'regular' });
+      r.shifts.push(emptyShift());
     }
     focusIndex = Math.min(Number(remove.dataset.remove), r.shifts.length - 1);
   }
@@ -271,7 +322,7 @@ $('#export').onclick = () => {
       return [
         k,
         d.toLocaleDateString(undefined, { weekday: 'long' }),
-        shift.type === 'public holiday overtime' ? 'Public holiday overtime' : shift.type === 'public holiday' ? 'Public holiday' : shift.type === 'overtime' ? 'Overtime' : 'Regular',
+        typeLabel(shift),
         i + 1,
         shift.start,
         shift.end,

@@ -136,6 +136,7 @@
       <div class="settings-tabs" role="tablist" aria-label="Employee settings">
         <button id="generalTab" role="tab" aria-selected="true" aria-controls="generalPanel" type="button">General</button>
         <button id="ratesTab" role="tab" aria-selected="false" aria-controls="ratesPanel" tabindex="-1" type="button">Rates</button>
+        <button id="workTypesTab" role="tab" aria-selected="false" aria-controls="workTypesPanel" tabindex="-1" type="button">Work types</button>
       </div>
       <p id="settingsMessage" role="status" aria-live="polite"></p>
       <fieldset id="settingsFields" disabled>
@@ -148,6 +149,7 @@
             <button class="primary" type="submit">Save general details</button>
           </form>
           <div class="settings-actions">
+            <button id="resendStaffInvite" class="outline" type="button" hidden>Resend invitation</button>
             <button id="resetStaffPassword" class="outline" type="button">Send password reset email</button>
             <button id="removeStaff" class="outline danger-button" type="button">Remove employee</button>
           </div>
@@ -159,7 +161,22 @@
             <label for="rateOvertime">Overtime ($/hour)</label><input id="rateOvertime" data-rate="overtime" type="number" min="0" max="99999999.99" step="0.01">
             <label for="rateHoliday">Public holiday ($/hour)</label><input id="rateHoliday" data-rate="public_holiday" type="number" min="0" max="99999999.99" step="0.01">
             <label for="rateHolidayOvertime">Public holiday overtime ($/hour)</label><input id="rateHolidayOvertime" data-rate="public_holiday_overtime" type="number" min="0" max="99999999.99" step="0.01">
+            <div id="customRateFields" class="staff-form"></div>
             <button class="primary" type="submit">Save rates</button>
+          </form>
+        </section>
+        <section id="workTypesPanel" role="tabpanel" aria-labelledby="workTypesTab" hidden>
+          <form id="workTypesForm" class="staff-form">
+            <p>Enable the default types this employee can select.</p>
+            <div id="defaultWorkTypes" class="staff-form"></div>
+            <label class="work-types-switch"><input id="customTypesEnabled" type="checkbox" role="switch"><span class="switch-track" aria-hidden="true"></span>Enable custom work types</label>
+            <div id="customWorkTypes" class="staff-form" hidden>
+              <p>Add up to three types for this employee only. Leave unused names blank.</p>
+              <label for="customType1">Custom type 1</label><input id="customType1" data-custom-slot="1" maxlength="60">
+              <label for="customType2">Custom type 2</label><input id="customType2" data-custom-slot="2" maxlength="60">
+              <label for="customType3">Custom type 3</label><input id="customType3" data-custom-slot="3" maxlength="60">
+            </div>
+            <button class="primary" type="submit" disabled>Save work types</button>
           </form>
         </section>
       </fieldset>
