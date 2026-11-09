@@ -51,6 +51,13 @@
 .submission-card { border-bottom: 1px solid var(--line); padding: 18px 0; }
 .submission-card summary { cursor: pointer; overflow-wrap: anywhere; }
 .submission-card summary small { display: block; margin-top: 6px; color: #61776b; }
+.submission-summary-row { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 6px 14px; max-width: calc(100% - 24px); vertical-align: top; }
+.submission-work-totals { color: #77817b; font-size: 12px; }
+.submission-status { font-weight: 600; }
+.submission-status-pending { color: #b45309; }
+.submission-status-approved { color: #236956; }
+.submission-status-denied { color: #b42318; }
+.denial-reason { color: #b42318; white-space: pre-wrap; overflow-wrap: anywhere; }
 .submission-card .staff-table { margin-top: 16px; }
 .staff-form input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--green); }
 .work-types-switch { position: relative; padding-block: 12px; }

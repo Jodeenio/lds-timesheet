@@ -26,11 +26,38 @@
       const card = document.createElement('details');
       card.className = 'submission-card';
       const summary = document.createElement('summary');
-      const status = { pending: 'Awaiting approval', approved: 'Approved', returned: 'Returned for changes' }[sheet.status];
-      summary.textContent = `${sheet.employee_name} · ${TempoTime.format(sheet.total_minutes)} · ${status}`;
-      const email = document.createElement('small');
-      email.textContent = `${sheet.employee_email} · Submitted ${new Date(sheet.submitted_at).toLocaleString('en-AU')}`;
-      summary.append(email);
+      const status = { pending: 'Awaiting approval', approved: 'Approved', denied: 'Denied' }[sheet.status];
+      const topRow = document.createElement('span');
+      topRow.className = 'submission-summary-row';
+      const nameParts = sheet.employee_name.trim().split(/\s+/);
+      const name = document.createElement('strong');
+      name.textContent = nameParts.length > 1 ? `${nameParts[0]} ${Array.from(nameParts.at(-1))[0]}.` : nameParts[0];
+      const total = document.createElement('span');
+      total.textContent = TempoTime.format(sheet.total_minutes);
+      const workTotals = new Map();
+      for (const day of Object.values(sheet.days)) {
+        for (const shift of day.shifts) {
+          const existing = workTotals.get(shift.type) || { label: shift.typeLabel || shift.type, minutes: 0 };
+          existing.minutes += shift.minutes;
+          workTotals.set(shift.type, existing);
+        }
+      }
+      const breakdown = document.createElement('span');
+      breakdown.className = 'submission-work-totals';
+      breakdown.textContent = [...workTotals.values()].map(type => `${type.label}: ${TempoTime.format(type.minutes)}`).join(' · ');
+      const statusLabel = document.createElement('span');
+      statusLabel.className = `submission-status submission-status-${sheet.status}`;
+      statusLabel.textContent = status;
+      topRow.append(name, total, breakdown, statusLabel);
+      if (sheet.status === 'denied' && sheet.denial_reason) {
+        const reason = document.createElement('span');
+        reason.className = 'denial-reason';
+        reason.textContent = ` — ${sheet.denial_reason}`;
+        topRow.append(reason);
+      }
+      const submitted = document.createElement('small');
+      submitted.textContent = `Submitted ${new Date(sheet.submitted_at).toLocaleString('en-AU')}`;
+      summary.append(topRow, submitted);
       card.append(summary);
       const wrap = document.createElement('div');
       wrap.className = 'staff-table-wrap';
@@ -55,20 +82,31 @@
       table.append(body); wrap.append(table); card.append(wrap);
       if (sheet.status === 'pending') {
         const actions = document.createElement('div'); actions.className = 'staff-pagination';
-        for (const [label, nextStatus] of [['Approve', 'approved'], ['Return for changes', 'returned']]) {
+        for (const [label, nextStatus] of [['Approve', 'approved'], ['Deny', 'denied']]) {
           const button = document.createElement('button'); button.type = 'button'; button.className = nextStatus === 'approved' ? 'primary' : 'outline'; button.textContent = label;
           button.onclick = async () => {
-            if (timesheetBusy || !client || !window.confirm(`${label} the timesheet for ${sheet.employee_name}, week ${sheet.week_start}?`)) return;
+            if (timesheetBusy || !client) return;
+            let reason = null;
+            if (nextStatus === 'denied') {
+              const entered = window.prompt(`Reason for denying ${sheet.employee_name}'s timesheet, week ${sheet.week_start}:`);
+              if (entered === null) return;
+              reason = entered.trim();
+              if (!reason || reason.length > 1000) {
+                $('#timesheetsMessage').textContent = 'Enter a denial reason between 1 and 1000 characters.';
+                return;
+              }
+            } else if (!window.confirm(`${label} the timesheet for ${sheet.employee_name}, week ${sheet.week_start}?`)) return;
             const current = timesheetRequest;
             timesheetBusy = true;
             root.querySelectorAll('button').forEach(item => { item.disabled = true; });
             $('#timesheetsMessage').textContent = 'Saving review...';
             try {
-              await call({ action: 'review-timesheet', id: sheet.id, status: nextStatus, submittedAt: sheet.submitted_at });
+              await call({ action: 'review-timesheet', id: sheet.id, status: nextStatus, reason, submittedAt: sheet.submitted_at });
               if (current !== timesheetRequest) return;
               sheet.status = nextStatus;
+              sheet.denial_reason = reason;
               renderTimesheets();
-              $('#timesheetsMessage').textContent = nextStatus === 'approved' ? 'Timesheet approved.' : 'Timesheet returned for changes.';
+              $('#timesheetsMessage').textContent = nextStatus === 'approved' ? 'Timesheet approved.' : 'Timesheet denied.';
             } catch (error) { if (current === timesheetRequest) $('#timesheetsMessage').textContent = error.message; }
             finally { if (current === timesheetRequest) { timesheetBusy = false; root.querySelectorAll('button').forEach(item => { item.disabled = false; }); } }
           };

@@ -13,7 +13,7 @@ function submissionText() {
   if (!submissionReady) return 'Loading submission status...';
   return submission?.status === 'approved' ? 'Approved. This week is locked.'
     : submission?.status === 'pending' ? 'Submitted — awaiting admin approval. This week is locked.'
-    : submission?.status === 'returned' ? 'Returned for changes. Update your shifts and submit again.'
+    : submission?.status === 'denied' ? `Denied. ${submission.denial_reason || ''} Update your shifts and submit again.`
     : 'Draft — changes save on this device until you submit.';
 }
 async function submissionCall(body) {
@@ -37,7 +37,7 @@ async function loadSubmission() {
     if (current !== submissionRequest || userId !== staffId || weekKey !== T.key(week)) return;
     submission = result.timesheet;
     submissionReady = true;
-    if (submission && (submission.status !== 'returned' || !days().some(d => data.days[T.key(d)]))) {
+    if (submission && (submission.status !== 'denied' || !days().some(d => data.days[T.key(d)]))) {
       for (const date of days()) delete data.days[T.key(date)];
       Object.assign(data.days, submission.days);
       persist();
@@ -350,7 +350,7 @@ $('#submitWeek').onclick = async () => {
   if (!Object.values(submittedDays).some(day => day.shifts.some(shift => shift.start || shift.end))) {
     $('#weekMessage').textContent = 'Enter at least one shift before submitting.'; return;
   }
-  if (!window.confirm('Submit this week for admin approval? You can edit it again if an admin returns it for changes.')) return;
+  if (!window.confirm('Submit this week for admin approval? You can edit it again if an admin denies it.')) return;
   const userId = staffId, weekKey = T.key(week);
   submitting = true;
   render();

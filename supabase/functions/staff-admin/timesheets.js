@@ -62,8 +62,10 @@ export async function handleTimesheets({ admin, user, body, reply }) {
     return reply(200, { timesheets: data.slice(0, 50), hasMore: data.length > 50 });
   }
   if (body.action === 'review-timesheet') {
-    if (typeof body.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.id) || !['approved', 'returned'].includes(body.status) || typeof body.submittedAt !== 'string') return reply(400, { error: 'Select a valid timesheet and review action.' });
-    const { data, error } = await admin.from('timesheets').update({ status: body.status, reviewed_by: user.id, reviewed_at: new Date().toISOString() }).eq('id', body.id).eq('status', 'pending').eq('submitted_at', body.submittedAt).select('id');
+    if (typeof body.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.id) || !['approved', 'denied'].includes(body.status) || typeof body.submittedAt !== 'string') return reply(400, { error: 'Select a valid timesheet and review action.' });
+    const reason = body.status === 'denied' && typeof body.reason === 'string' ? body.reason.trim() : null;
+    if (body.status === 'denied' && (!reason || reason.length > 1000)) return reply(400, { error: 'Enter a denial reason between 1 and 1000 characters.' });
+    const { data, error } = await admin.from('timesheets').update({ status: body.status, denial_reason: reason, reviewed_by: user.id, reviewed_at: new Date().toISOString() }).eq('id', body.id).eq('status', 'pending').eq('submitted_at', body.submittedAt).select('id');
     if (error) return reply(502, { error: 'Could not review timesheet. Try again.' });
     if (!data.length) return reply(409, { error: 'This timesheet has changed or was already reviewed. Refresh the list.' });
     return reply(200, { saved: true });
@@ -72,7 +74,7 @@ export async function handleTimesheets({ admin, user, body, reply }) {
   const { data: existing, error: loadError } = await admin.from('timesheets').select('*').eq('user_id', user.id).eq('week_start', body.week).maybeSingle();
   if (loadError) return reply(502, { error: 'Could not load your submission. Check migration 006 has been applied.' });
   if (body.action === 'my-timesheet') return reply(200, { timesheet: existing });
-  if (existing && existing.status !== 'returned') return reply(409, { error: 'This week is already submitted. An administrator must return it before you can change it.' });
+  if (existing && existing.status !== 'denied') return reply(409, { error: 'This week is already submitted. An administrator must deny it before you can change it.' });
   const { data: defaults, error: typeError } = await admin.from('work_types').select('key,label');
   const { data: row, error: settingsError } = await admin.from('staff_rates').select('work_type_settings').eq('user_id', user.id).maybeSingle();
   if (typeError || settingsError || !defaults?.length) return reply(502, { error: 'Could not verify your work types. Try again.' });
@@ -85,9 +87,9 @@ export async function handleTimesheets({ admin, user, body, reply }) {
   }
   let validated;
   try { validated = validateDays(body.days, body.week, types); } catch (error) { return reply(400, { error: error.message }); }
-  const payload = { user_id: user.id, employee_name: user.user_metadata?.full_name || user.email || 'Staff', employee_email: user.email || '', week_start: body.week, days: validated.days, total_minutes: validated.total, status: 'pending', submitted_at: new Date().toISOString(), reviewed_at: null, reviewed_by: null };
+  const payload = { user_id: user.id, employee_name: user.user_metadata?.full_name || user.email || 'Staff', employee_email: user.email || '', week_start: body.week, days: validated.days, total_minutes: validated.total, status: 'pending', submitted_at: new Date().toISOString(), reviewed_at: null, reviewed_by: null, denial_reason: null };
   const query = existing
-    ? admin.from('timesheets').update(payload).eq('id', existing.id).eq('status', 'returned').eq('submitted_at', existing.submitted_at)
+    ? admin.from('timesheets').update(payload).eq('id', existing.id).eq('status', 'denied').eq('submitted_at', existing.submitted_at)
     : admin.from('timesheets').insert(payload);
   const { data, error } = await query.select('*');
   if (error || !data?.length) return reply(409, { error: 'Could not submit. Refresh this week to check whether it was already submitted, then try again.' });
