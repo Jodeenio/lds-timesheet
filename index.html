@@ -119,9 +119,11 @@
         </div>
       </section>
       <div class="below">
-        <span>Blank days count as days off. Changes save automatically on this device.</span>
-        <button class="primary" id="saveWeek">Save week</button>
+        <span>Blank days count as days off. Drafts save on this device. Submit your week for admin approval.</span>
+        <button class="primary" id="submitWeek" type="button" disabled>Submit timesheet</button>
       </div>
+      <p id="submissionStatus" role="status" aria-live="polite"></p>
+      <button id="retrySubmission" class="outline" type="button" hidden>Retry loading submission</button>
       <p id="weekMessage" role="status">
       </p>
       <footer>

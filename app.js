@@ -6,6 +6,50 @@ let data = { days: {} };
 let storageError = false;
 let staffId = null;
 let workTypes = [], workTypesReady = false, workTypesRequest = 0, staffClient = null;
+let submission = null, submissionReady = false, submissionRequest = 0, submitting = false;
+const locked = () => !submissionReady || submitting || ['pending', 'approved'].includes(submission?.status);
+function submissionText() {
+  if (submitting) return 'Submitting timesheet...';
+  if (!submissionReady) return 'Loading submission status...';
+  return submission?.status === 'approved' ? 'Approved. This week is locked.'
+    : submission?.status === 'pending' ? 'Submitted — awaiting admin approval. This week is locked.'
+    : submission?.status === 'returned' ? 'Returned for changes. Update your shifts and submit again.'
+    : 'Draft — changes save on this device until you submit.';
+}
+async function submissionCall(body) {
+  const { data: result, error } = await staffClient.functions.invoke('staff-admin', { body });
+  if (error) {
+    let detail;
+    try { detail = await error.context?.json(); } catch {}
+    throw new Error(detail?.error || 'Could not reach timesheet submissions. Try again.');
+  }
+  return result;
+}
+async function loadSubmission() {
+  const current = ++submissionRequest, userId = staffId, weekKey = T.key(week);
+  submission = null;
+  submissionReady = false;
+  $('#retrySubmission').hidden = true;
+  render();
+  if (!staffClient || !staffId) return;
+  try {
+    const result = await submissionCall({ action: 'my-timesheet', week: weekKey });
+    if (current !== submissionRequest || userId !== staffId || weekKey !== T.key(week)) return;
+    submission = result.timesheet;
+    submissionReady = true;
+    if (submission && (submission.status !== 'returned' || !days().some(d => data.days[T.key(d)]))) {
+      for (const date of days()) delete data.days[T.key(date)];
+      Object.assign(data.days, submission.days);
+      persist();
+    }
+    render();
+  } catch (error) {
+    if (current !== submissionRequest || userId !== staffId) return;
+    $('#submissionStatus').textContent = error.message;
+    $('#retrySubmission').hidden = false;
+  }
+}
+$('#retrySubmission').onclick = () => { void loadSubmission(); };
 const defaultLabels = { regular: 'Regular', overtime: 'Overtime', 'public holiday': 'Public holiday', 'public holiday overtime': 'Public holiday overtime' };
 const typeLabel = shift => shift.typeLabel || workTypes.find(type => type.key === shift.type)?.label || defaultLabels[shift.type] || shift.type;
 function emptyShift() {
@@ -40,6 +84,7 @@ async function loadWorkTypes() {
     workTypesReady = true;
     $('#workTypesMessage').textContent = '';
     render();
+    void loadSubmission();
   } catch {
     if (current !== workTypesRequest) return;
     $('#workTypesMessage').textContent = 'Could not load your enabled work types. Retry or contact your administrator.';
@@ -53,6 +98,9 @@ document.addEventListener('staff-session', event => {
   const nextId = event.detail?.id || null;
   if (nextId === staffId) return;
   staffId = nextId;
+  ++submissionRequest;
+  submission = null;
+  submissionReady = false;
   workTypesReady = false;
   workTypes = [];
   data = { days: {} };
@@ -157,7 +205,11 @@ function render() {
       `</section>`;
   }).join('');
 
-  $('#days').querySelectorAll('input, select, button').forEach(element => { element.disabled = !workTypesReady; });
+  $('#days').querySelectorAll('input, select, button').forEach(element => { element.disabled = !workTypesReady || locked(); });
+  $('#submitWeek').disabled = !workTypesReady || locked();
+  $('#submitWeek').textContent = submitting ? 'Submitting...' : 'Submit timesheet';
+  $('#submissionStatus').textContent = submissionText();
+  for (const id of ['previous', 'next', 'thisWeek', 'weekPicker']) $(`#${id}`).disabled = submitting;
 
   updateTotals();
   $('#weekMessage').textContent = storageError
@@ -190,7 +242,7 @@ function updateTotals() {
 }
 
 function handleEdit(e) {
-  if (!workTypesReady) return;
+  if (!workTypesReady || locked()) return;
   const field = e.target.dataset.field,
     isType = e.target.matches('[data-type]');
   if (!field && !isType) return;
@@ -215,7 +267,7 @@ function handleEdit(e) {
 $('#days').addEventListener('input', handleEdit);
 $('#days').addEventListener('change', e => {
   if (!e.target.matches('[data-type], [data-field]')) return;
-  if (!workTypesReady) return;
+  if (!workTypesReady || locked()) return;
   handleEdit(e);
   const k = e.target.closest('.daycard').dataset.date;
   const i = Number(e.target.closest('.shiftrow').dataset.shift);
@@ -244,7 +296,7 @@ $('#days').addEventListener('click', e => {
   const add = e.target.closest('[data-add]'),
     remove = e.target.closest('[data-remove]');
   if (!add && !remove) return;
-  if (!workTypesReady) return;
+  if (!workTypesReady || locked()) return;
 
   const k = e.target.closest('.daycard').dataset.date, r = getDay(k);
   let focusIndex;
@@ -268,17 +320,17 @@ $('#days').addEventListener('click', e => {
 
 $('#previous').onclick = () => {
   week = T.shift(week, -7);
-  render();
+  void loadSubmission();
 };
 
 $('#next').onclick = () => {
   week = T.shift(week, 7);
-  render();
+  void loadSubmission();
 };
 
 $('#thisWeek').onclick = () => {
   week = T.monday(new Date());
-  render();
+  void loadSubmission();
 };
 
 $('#weekPicker').onchange = e => {
@@ -286,16 +338,40 @@ $('#weekPicker').onchange = e => {
   let d = T.parseDate(e.target.value);
   if (!Number.isNaN(+d)) {
     week = T.monday(d);
-    render();
+    void loadSubmission();
   }
 };
 
-$('#saveWeek').onclick = () => {
-  let errors = updateTotals();
-  if (!persist()) return;
-  $('#weekMessage').textContent = errors
-    ? 'Draft saved. Complete the highlighted shifts to include them in the total.'
-    : 'Week saved on this device.';
+$('#submitWeek').onclick = async () => {
+  if (!workTypesReady || locked() || !staffClient) return;
+  if (updateTotals()) { $('#weekMessage').textContent = 'Complete or remove incomplete shifts before submitting.'; return; }
+  const submittedDays = {};
+  for (const date of days()) submittedDays[T.key(date)] = getDay(T.key(date));
+  if (!Object.values(submittedDays).some(day => day.shifts.some(shift => shift.start || shift.end))) {
+    $('#weekMessage').textContent = 'Enter at least one shift before submitting.'; return;
+  }
+  if (!window.confirm('Submit this week for admin approval? You can edit it again if an admin returns it for changes.')) return;
+  const userId = staffId, weekKey = T.key(week);
+  submitting = true;
+  render();
+  try {
+    const result = await submissionCall({ action: 'submit-timesheet', week: weekKey, days: submittedDays });
+    if (userId !== staffId || weekKey !== T.key(week)) return;
+    submission = result.timesheet;
+    submissionReady = true;
+    Object.assign(data.days, submission.days);
+    persist();
+    $('#weekMessage').textContent = '';
+  } catch (error) {
+    if (userId === staffId) $('#weekMessage').textContent = error.message;
+  } finally {
+    submitting = false;
+    if (userId === staffId) {
+      const message = $('#weekMessage').textContent;
+      render();
+      $('#weekMessage').textContent = message;
+    }
+  }
 };
 
 function download(rows, name) {

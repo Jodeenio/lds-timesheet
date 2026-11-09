@@ -46,6 +46,12 @@
 .custom-type-row input[disabled] { color: #87928c; background: #f0f3f1; border-color: #dce2de; cursor: not-allowed; }
 #customRateFields input[disabled] { color: #87928c; background: #f0f3f1; border-color: #dce2de; cursor: not-allowed; }
 .disabled-rate-label { color: #87928c; }
+.timesheet-week { margin-top: 28px; }
+.timesheet-week h3 { padding: 14px 16px; background: #edf3ef; border-radius: 8px; font-size: 16px; }
+.submission-card { border-bottom: 1px solid var(--line); padding: 18px 0; }
+.submission-card summary { cursor: pointer; overflow-wrap: anywhere; }
+.submission-card summary small { display: block; margin-top: 6px; color: #61776b; }
+.submission-card .staff-table { margin-top: 16px; }
 .staff-form input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--green); }
 .work-types-switch { position: relative; padding-block: 12px; }
 .work-types-switch input { position: absolute; opacity: 0; }

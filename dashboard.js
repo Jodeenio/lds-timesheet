@@ -7,6 +7,99 @@
 
   let workTypesLoaded = false;
   let savedCustomRates = {};
+  let timesheetRows = [], timesheetPage = 1, timesheetRequest = 0, timesheetBusy = false;
+  function renderTimesheets() {
+    const root = $('#submittedTimesheets');
+    root.replaceChildren();
+    let group, lastWeek;
+    for (const sheet of timesheetRows) {
+      if (sheet.week_start !== lastWeek) {
+        lastWeek = sheet.week_start;
+        group = document.createElement('section');
+        group.className = 'timesheet-week';
+        const title = document.createElement('h3');
+        const start = TempoTime.parseDate(lastWeek);
+        title.textContent = `Week ${start.toLocaleDateString('en-AU')} – ${TempoTime.shift(start, 6).toLocaleDateString('en-AU')}`;
+        group.append(title);
+        root.append(group);
+      }
+      const card = document.createElement('details');
+      card.className = 'submission-card';
+      const summary = document.createElement('summary');
+      const status = { pending: 'Awaiting approval', approved: 'Approved', returned: 'Returned for changes' }[sheet.status];
+      summary.textContent = `${sheet.employee_name} · ${TempoTime.format(sheet.total_minutes)} · ${status}`;
+      const email = document.createElement('small');
+      email.textContent = `${sheet.employee_email} · Submitted ${new Date(sheet.submitted_at).toLocaleString('en-AU')}`;
+      summary.append(email);
+      card.append(summary);
+      const wrap = document.createElement('div');
+      wrap.className = 'staff-table-wrap';
+      const table = document.createElement('table');
+      table.className = 'staff-table';
+      const head = document.createElement('thead');
+      const header = document.createElement('tr');
+      for (const text of ['Date', 'Work type', 'Start', 'End', 'Hours']) {
+        const cell = document.createElement('th'); cell.scope = 'col'; cell.textContent = text; header.append(cell);
+      }
+      head.append(header); table.append(head);
+      const body = document.createElement('tbody');
+      for (const [date, day] of Object.entries(sheet.days).sort(([a], [b]) => a.localeCompare(b))) {
+        for (const shift of day.shifts) {
+          const row = document.createElement('tr');
+          for (const text of [TempoTime.parseDate(date).toLocaleDateString('en-AU'), shift.typeLabel || shift.type, shift.start, shift.end + (shift.nextDay ? ' (+1 day)' : ''), TempoTime.format(shift.minutes)]) {
+            const cell = document.createElement('td'); cell.textContent = text; row.append(cell);
+          }
+          body.append(row);
+        }
+      }
+      table.append(body); wrap.append(table); card.append(wrap);
+      if (sheet.status === 'pending') {
+        const actions = document.createElement('div'); actions.className = 'staff-pagination';
+        for (const [label, nextStatus] of [['Approve', 'approved'], ['Return for changes', 'returned']]) {
+          const button = document.createElement('button'); button.type = 'button'; button.className = nextStatus === 'approved' ? 'primary' : 'outline'; button.textContent = label;
+          button.onclick = async () => {
+            if (timesheetBusy || !client || !window.confirm(`${label} the timesheet for ${sheet.employee_name}, week ${sheet.week_start}?`)) return;
+            const current = timesheetRequest;
+            timesheetBusy = true;
+            root.querySelectorAll('button').forEach(item => { item.disabled = true; });
+            $('#timesheetsMessage').textContent = 'Saving review...';
+            try {
+              await call({ action: 'review-timesheet', id: sheet.id, status: nextStatus, submittedAt: sheet.submitted_at });
+              if (current !== timesheetRequest) return;
+              sheet.status = nextStatus;
+              renderTimesheets();
+              $('#timesheetsMessage').textContent = nextStatus === 'approved' ? 'Timesheet approved.' : 'Timesheet returned for changes.';
+            } catch (error) { if (current === timesheetRequest) $('#timesheetsMessage').textContent = error.message; }
+            finally { if (current === timesheetRequest) { timesheetBusy = false; root.querySelectorAll('button').forEach(item => { item.disabled = false; }); } }
+          };
+          actions.append(button);
+        }
+        card.append(actions);
+      }
+      group.append(card);
+    }
+  }
+  async function loadTimesheets(more = false) {
+    if (!client || timesheetBusy) return;
+    const current = ++timesheetRequest;
+    const nextPage = more ? timesheetPage + 1 : 1;
+    timesheetBusy = true;
+    $('#refreshTimesheets').disabled = $('#moreTimesheets').disabled = true;
+    $('#timesheetsMessage').textContent = 'Loading timesheets...';
+    try {
+      const result = await call({ action: 'list-timesheets', page: nextPage });
+      if (current !== timesheetRequest) return;
+      timesheetRows = [...new Map([...(more ? timesheetRows : []), ...result.timesheets].map(sheet => [sheet.id, sheet])).values()]
+        .sort((a, b) => b.week_start.localeCompare(a.week_start) || b.submitted_at.localeCompare(a.submitted_at));
+      timesheetPage = nextPage;
+      renderTimesheets();
+      $('#moreTimesheets').hidden = !result.hasMore;
+      $('#timesheetsMessage').textContent = timesheetRows.length ? '' : 'No submitted timesheets yet.';
+    } catch (error) { if (current === timesheetRequest) $('#timesheetsMessage').textContent = error.message; }
+    finally { if (current === timesheetRequest) { timesheetBusy = false; $('#refreshTimesheets').disabled = $('#moreTimesheets').disabled = false; } }
+  }
+  $('#refreshTimesheets').onclick = () => { void loadTimesheets(); };
+  $('#moreTimesheets').onclick = () => { void loadTimesheets(true); };
   function selectTab(tab) {
     const name = tab === true ? 'rates' : tab === false ? 'general' : tab;
     for (const key of ['general', 'rates', 'workTypes']) {
@@ -292,7 +385,11 @@
 
   document.addEventListener('admin-session', event => {
     client = event.detail?.client || null;
-    if (client) { void loadStaff(); return; }
+    if (client) { void loadStaff(); void loadTimesheets(); return; }
+    ++timesheetRequest;
+    timesheetBusy = false;
+    timesheetRows = [];
+    $('#submittedTimesheets').replaceChildren();
     ++request;
     ++settingsRequest;
     selected = null;

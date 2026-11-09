@@ -60,7 +60,6 @@
                     <span class="staff-name" data-staff-name></span>
                     <span id="staffEmail"></span>
                   </div>
-                  <span class="saved" id="saveStatus" role="status">Saved on this device</span>
                   <button class="outline" id="signOut" type="button">Sign out</button>
                 </div>
               </div>
@@ -109,8 +108,10 @@
         </div>
       </section>
       <section class="sheet admin-section" aria-label="Staff timesheets">
-        <h2>Staff timesheets</h2>
-        <p>Staff currently save their timesheets in their own browsers. Central timesheet viewing is not connected yet.</p>
+        <div class="heading"><div><h2>Staff timesheets</h2><p>Review employee submissions grouped by week.</p></div><button id="refreshTimesheets" class="outline" type="button">Refresh timesheets</button></div>
+        <p id="timesheetsMessage" role="status" aria-live="polite"></p>
+        <div id="submittedTimesheets"></div>
+        <button id="moreTimesheets" class="outline" type="button" hidden>Load more</button>
       </section>
       <p id="weekMessage" role="status"></p>
     </main>
@@ -183,6 +184,7 @@
     </dialog>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="time.js"></script>
     <script src="dashboard.js"></script>
     <script src="auth.js"></script>
   </body>

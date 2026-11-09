@@ -79,15 +79,21 @@ supabase functions deploy staff-admin
 
 Invitations are not sent automatically by deploying this code. To test, sign in as an admin, invite a new test email, open its invitation in a private browser, complete the details, then refresh the admin staff list. Existing accounts should use normal sign in; the Add staff flow is for new users. Verify a staff token receives HTTP 403 from the function and an unauthenticated request receives HTTP 401. Do not use the Supabase SQL editor to insert Auth users manually.
 
-The staff list includes all Auth accounts in the dedicated staff project, including administrators, with pagination. The timesheets section remains informational until cloud timesheet storage is added. Staff profile metadata is editable by that staff member and must never grant permissions.
+The staff list includes all Auth accounts in the dedicated staff project, including administrators, with pagination. Submitted timesheets appear below the staff list, grouped by Monday–Sunday week headings with expandable employee shift details. Staff profile metadata is editable by that staff member and must never grant permissions.
 
-## Local timesheet storage
+## Timesheet submissions and approval
 
-Timesheets still save only in this browser, under a separate local-storage key for each Supabase user ID. They do not sync to Supabase or between devices. Signing out clears the visible timesheet but retains that staff member's browser copy for their next login.
+Apply `supabase/migrations/202611090006_timesheets.sql` after the earlier migrations. Deploy the full `supabase/functions/staff-admin` directory, including the new `timesheets.js` helper imported by `index.ts`, and the updated static site. If editing the function in the Supabase dashboard, add `timesheets.js` as a second file before deploying. This adds a `timesheets` table alongside the existing settings tables.
+
+Drafts save locally under a separate key for each Auth UID. **Submit timesheet** uploads the selected week's completed shifts to the server for admin review; blank days count as days off. The server validates dates, work-type assignments, times and overlaps, recalculates totals and overtime, and snapshots employee identity/work-type labels. Pending and approved weeks are locked and load from the server on other devices. An admin can approve or return a pending submission; returned weeks can be edited and resubmitted. Submitted weeks are unique per employee. Approval checks the submission timestamp/status to prevent stale reviews, and repeat submissions cannot overwrite pending/approved sheets.
+
+The admin dashboard groups submissions by week and shows employee names, hours, status and expandable daily shifts, with Approve and Return for changes actions. Load more retrieves older submissions and retains week grouping. Refresh retrieves new submissions. Staff can retrieve only their own weekly submission; list/review actions require the verified admin role. RLS is enabled, browser roles have no table access, and the Edge Function performs server-authorized operations. Removing an employee retains submitted records and their identity snapshot. Rates/pay calculations are not part of approval yet.
+
+Verify a staff submission appears under the correct week, survives sign-out and another device, cannot be edited while pending/approved, and can be resubmitted after return. Verify other staff cannot retrieve it and cannot list or review submissions. Test an overnight shift and an overlapping pair, a disabled work type, repeated submission, and a review made from an outdated page.
 
 Existing anonymous data (`tempo-weekly-v1` and `tempo-v1`) is preserved untouched. It is not automatically assigned to the first staff member who logs in, and shared legacy exports are no longer exposed. Export any needed anonymous entries from the previous app before upgrading.
 
-Local storage is accessible to someone with access to the browser profile. Authentication controls the app's normal UI, not local file access. If timesheets move into Supabase later, enforce access in the database using Row Level Security and policies tied to `auth.uid()`.
+Local drafts are accessible to someone with access to the browser profile. Signing out clears the visible timesheet but retains that employee's local drafts. Only submitted weeks sync to the server.
 
 ## Verify
 
