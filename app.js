@@ -80,6 +80,7 @@ async function loadAdminTimesheet() {
     data = { days: structuredClone(submission.days) };
     $('#adminEditBanner').hidden = false;
     $('#adminEditBanner').textContent = `Editing ${submission.employee_name}'s timesheet. Status stays ${submission.status} when saved.`;
+    $('#timesheetTitle').textContent = `Editing ${submission.employee_name}'s timesheet`;
     $('#cancelAdminEdit').hidden = false;
     render();
   } catch (error) {
