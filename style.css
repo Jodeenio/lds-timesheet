@@ -98,7 +98,7 @@ button:disabled { opacity: .6; cursor: wait; }
 :root {
   font-family: 'DM Sans',system-ui,sans-serif;
   color: #24364b;
-  background: #f4f7fb;
+  background: #f9fafb;
   font-size: 14px;
   --accent: #2563eb;
   --line: #dce5ef
