@@ -10,6 +10,12 @@
   let timesheetRows = [], timesheetPage = 1, timesheetRequest = 0, timesheetBusy = false;
   const csvDialog = $('#csvDialog');
   let csvScope = null, csvOutput = null, csvRequest = 0;
+  document.addEventListener('click', event => {
+    document.querySelectorAll('.timesheet-menu[open]').forEach(menu => {
+      if (!menu.contains(event.target)) menu.open = false;
+    });
+  });
+
   function openCsv(scope) {
     csvScope = scope;
     $('#csvIncludeRates').checked = false;

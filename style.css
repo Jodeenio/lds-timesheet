@@ -353,6 +353,11 @@
   margin-bottom: 24px;
 }
 
+/* Let timesheet action menus extend past the section's rounded border. */
+.admin-section:has(> #submittedTimesheets) {
+  overflow: visible;
+}
+
 .admin-section h2 {
   margin-top: 0;
 }
