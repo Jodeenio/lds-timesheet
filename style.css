@@ -540,6 +540,7 @@
   background: var(--theme-timesheet-header);
   border-radius: 8px;
   font-size: 16px;
+  margin: 16px 0px 0px 0px
 }
 
 .timesheet-week h3 {
