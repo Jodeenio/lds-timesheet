@@ -21,6 +21,7 @@
   --theme-disabled-surface: #f0f3f1;
   --theme-disabled-border: #dce2de;
   --theme-subtle: #edf3ef;
+  --theme-timesheet-header: #edf3ef;
   --theme-muted-3: #526780;
   --theme-warning: #b45309;
   --theme-danger-2: #b42318;
@@ -148,6 +149,7 @@
     --theme-disabled-surface: #30363d;
     --theme-disabled-border: #484f58;
     --theme-subtle: #30373b;
+    --theme-timesheet-header: #263e57;
     --theme-muted-3: #c3c7cb;
     --theme-warning: #f5bc73;
     --theme-danger-2: #ffaaa3;
@@ -535,7 +537,7 @@
 
 .timesheet-week h3 {
   padding: 14px 16px;
-  background: var(--theme-subtle);
+  background: var(--theme-timesheet-header);
   border-radius: 8px;
   font-size: 16px;
 }
