@@ -8,11 +8,6 @@
   let workTypesLoaded = false;
   let savedCustomRates = {};
   let timesheetRows = [], timesheetPage = 1, timesheetRequest = 0, timesheetBusy = false;
-  document.addEventListener('click', event => {
-    document.querySelectorAll('.timesheet-menu[open]').forEach(menu => {
-      if (!menu.contains(event.target)) menu.open = false;
-    });
-  });
   const csvDialog = $('#csvDialog');
   let csvScope = null, csvOutput = null, csvRequest = 0;
   function openCsv(scope) {
@@ -81,7 +76,7 @@
         download.type = 'button';
         download.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 16v5h14v-5"></path></svg>';
         download.title = 'Download approved';
-        download.setAttribute('aria-label', 'Download approved');
+        download.setAttribute('aria-label', 'Download all approved');
         download.onclick = () => openCsv({ week: weekStart });
         title.append(download);
         group.append(title);
@@ -491,7 +486,7 @@
         const actions = document.createElement('td');
         const settingsButton = document.createElement('button');
         settingsButton.type = 'button';
-        settingsButton.className = 'outline staff-more';
+        settingsButton.className = 'staff-more';
         settingsButton.textContent = '\u22ee';
         settingsButton.setAttribute('aria-label', `Settings for ${staff.name || staff.email}`);
         settingsButton.setAttribute('aria-haspopup', 'dialog');
