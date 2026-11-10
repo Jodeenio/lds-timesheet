@@ -48,6 +48,7 @@
 .disabled-rate-label { color: #87928c; }
 .timesheet-week { margin-top: 28px; }
 .timesheet-week h3 { padding: 14px 16px; background: #edf3ef; border-radius: 8px; font-size: 16px; }
+.timesheet-week h3 { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 .submission-card { border-bottom: 1px solid var(--line); padding: 18px 0; }
 .submission-card summary { cursor: pointer; overflow-wrap: anywhere; }
 .submission-card summary small { display: block; margin-top: 6px; color: #61776b; }
@@ -61,7 +62,12 @@
 .timesheet-menu { position: relative; padding-top: 12px; }
 .timesheet-menu summary { list-style: none; cursor: pointer; text-align: center; font-size: 24px; padding: 8px; }
 .timesheet-menu summary::-webkit-details-marker { display: none; }
-.timesheet-menu a { position: absolute; right: 0; top: 56px; z-index: 2; width: 160px; background: white; padding: 14px; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 12px #0002; }
+.timesheet-menu-options { position: absolute; right: 0; top: 56px; z-index: 2; width: 170px; background: white; padding: 6px; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 12px #0002; }
+.timesheet-menu-options a, .timesheet-menu-options button { display: block; width: 100%; padding: 10px; text-align: left; border: 0; border-radius: 4px; background: transparent; color: inherit; font: inherit; }
+.timesheet-menu-options a:hover, .timesheet-menu-options button:hover { background: #edf3ef; }
+.staff-form select { width: 100%; padding: 12px; border: 1px solid #bccdc3; border-radius: 8px; font: inherit; background: white; color: inherit; }
+.csv-settings-help { font-size: 12px; color: #61776b; }
+.csv-preview > p { padding-block: 10px; border-bottom: 1px solid var(--line); }
 .admin-adjusted-shift { background: #f3edff; border-left: 3px solid #7c3aed; }
 .admin-adjusted-shift input, .admin-adjusted-shift select, .admin-adjusted-shift output { color: #6d28d9; }
 .admin-adjustment-notice, .admin-day-adjustment { color: #6d28d9; }

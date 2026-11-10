@@ -8,6 +8,56 @@
   let workTypesLoaded = false;
   let savedCustomRates = {};
   let timesheetRows = [], timesheetPage = 1, timesheetRequest = 0, timesheetBusy = false;
+  const csvDialog = $('#csvDialog');
+  let csvScope = null, csvOutput = null, csvRequest = 0;
+  function openCsv(scope) {
+    csvScope = scope;
+    $('#csvIncludeRates').checked = false;
+    $('#csvScope').textContent = scope.id ? `Timesheet for ${scope.employee}, week ${scope.week}.` : `All approved timesheets for the week starting ${scope.week}.`;
+    csvDialog.showModal();
+    void prepareCsv();
+  }
+  async function prepareCsv() {
+    if (!client || !csvScope) return;
+    const current = ++csvRequest;
+    csvOutput = null;
+    $('#downloadCsv').disabled = true;
+    $('#csvPreview').replaceChildren();
+    $('#csvMessage').textContent = 'Preparing download...';
+    try {
+      const output = await call({ action: 'export-timesheets', ...(csvScope.id ? { id: csvScope.id } : { week: csvScope.week }), includeRates: $('#csvIncludeRates').checked });
+      if (current !== csvRequest) return;
+      csvOutput = output;
+      for (const summary of output.summaries) {
+        const row = document.createElement('p');
+        const name = document.createElement('strong');
+        name.textContent = `${summary.employee} · ${TempoTime.format(summary.minutes)}`;
+        row.append(name);
+        if (summary.calculation) {
+          const calculation = document.createElement('span');
+          calculation.textContent = ` — AUD ${summary.calculation}${summary.taxMode === 'none' ? ' (no tax adjustment)' : ` (${summary.taxMode} tax)`}`;
+          row.append(calculation);
+        }
+        $('#csvPreview').append(row);
+      }
+      $('#csvMessage').textContent = `${output.summaries.length} ${output.summaries.length === 1 ? 'timesheet' : 'timesheets'} ready. Includes shift details, daily totals and a weekly total per person.`;
+      $('#downloadCsv').disabled = false;
+    } catch (error) { if (current === csvRequest) $('#csvMessage').textContent = error.message; }
+  }
+  $('#csvIncludeRates').onchange = () => { void prepareCsv(); };
+  $('#cancelCsv').onclick = () => csvDialog.close();
+  csvDialog.addEventListener('close', () => { ++csvRequest; csvOutput = null; csvScope = null; });
+  $('#downloadCsv').onclick = () => {
+    if (!csvOutput) return;
+    const url = URL.createObjectURL(new Blob([csvOutput.csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = csvOutput.filename;
+    document.body.append(link);
+    link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    csvDialog.close();
+  };
   function renderTimesheets() {
     const root = $('#submittedTimesheets');
     root.replaceChildren();
@@ -20,6 +70,13 @@
         const title = document.createElement('h3');
         const start = TempoTime.parseDate(lastWeek);
         title.textContent = `Week ${start.toLocaleDateString('en-AU')} – ${TempoTime.shift(start, 6).toLocaleDateString('en-AU')}`;
+        const weekStart = sheet.week_start;
+        const download = document.createElement('button');
+        download.className = 'outline';
+        download.type = 'button';
+        download.textContent = 'Download approved CSV';
+        download.onclick = () => openCsv({ week: weekStart });
+        title.append(download);
         group.append(title);
         root.append(group);
       }
@@ -129,7 +186,14 @@
       editUrl.searchParams.set('editTimesheet', sheet.id);
       edit.href = editUrl.href;
       edit.textContent = 'Edit timesheet';
-      menu.append(toggle, edit);
+      const download = document.createElement('button');
+      download.type = 'button';
+      download.textContent = 'Download CSV';
+      download.onclick = () => { menu.open = false; openCsv({ id: sheet.id, week: sheet.week_start, employee: sheet.employee_name }); };
+      const menuOptions = document.createElement('div');
+      menuOptions.className = 'timesheet-menu-options';
+      menuOptions.append(edit, download);
+      menu.append(toggle, menuOptions);
       entry.append(card, menu);
       group.append(entry);
     }
@@ -282,6 +346,9 @@
       if (current !== settingsRequest) return;
       document.querySelectorAll('[data-rate]').forEach(input => { input.value = data.rates[input.dataset.rate] ?? ''; });
       savedCustomRates = data.customRates || {};
+      $('#staffTaxMode').value = data.tax?.mode || 'none';
+      $('#staffTaxPercent').value = data.tax?.percent ?? 0;
+      $('#staffTaxPercent').disabled = $('#staffTaxMode').value === 'none';
       $('#customRateFields').replaceChildren();
       for (const type of data.customTypes || []) {
         const label = document.createElement('label');
@@ -354,8 +421,10 @@
     document.querySelectorAll('[data-custom-rate]').forEach(input => {
       if (!input.disabled) customRates[input.dataset.customRate] = input.value === '' ? null : Number(input.value);
     });
-    void saveSettings({ action: 'save-rates', rates, customRates }, 'Rates saved.', () => { savedCustomRates = customRates; });
+    const tax = { mode: $('#staffTaxMode').value, percent: Number($('#staffTaxPercent').value || 0) };
+    void saveSettings({ action: 'save-rates', rates, customRates, tax }, 'Rates and tax settings saved.', () => { savedCustomRates = customRates; });
   };
+  $('#staffTaxMode').onchange = () => { $('#staffTaxPercent').disabled = $('#staffTaxMode').value === 'none'; };
   $('#resendStaffInvite').onclick = () => {
     if (!selected || settingsBusy) return;
     const entered = window.prompt('Resend invitation to this email address. Changing it will also update the employee account email.', selected.email);
@@ -442,6 +511,9 @@
     client = event.detail?.client || null;
     if (client) { void loadStaff(); void loadTimesheets(); return; }
     ++timesheetRequest;
+    ++csvRequest;
+    csvOutput = null;
+    csvDialog.close();
     timesheetBusy = false;
     timesheetRows = [];
     $('#submittedTimesheets').replaceChildren();

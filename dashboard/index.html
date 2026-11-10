@@ -156,23 +156,26 @@
           </div>
         </section>
         <section id="ratesPanel" role="tabpanel" aria-labelledby="ratesTab" hidden>
-          <p>Hourly rates in AUD. Leave blank if a rate has not been set. Rates are saved for this employee.</p>
+          <p>Hourly rates in AUD. Leave blank if a rate has not been set.</p>
           <form id="ratesForm" class="staff-form">
             <label for="rateRegular">Regular ($/hour)</label><input id="rateRegular" data-rate="regular" type="number" min="0" max="99999999.99" step="0.01">
             <label for="rateOvertime">Overtime ($/hour)</label><input id="rateOvertime" data-rate="overtime" type="number" min="0" max="99999999.99" step="0.01">
             <label for="rateHoliday">Public holiday ($/hour)</label><input id="rateHoliday" data-rate="public_holiday" type="number" min="0" max="99999999.99" step="0.01">
             <label for="rateHolidayOvertime">Public holiday overtime ($/hour)</label><input id="rateHolidayOvertime" data-rate="public_holiday_overtime" type="number" min="0" max="99999999.99" step="0.01">
             <div id="customRateFields" class="staff-form"></div>
+            <label for="staffTaxMode">Tax adjustment</label>
+            <select id="staffTaxMode"><option value="none">No tax adjustment</option><option value="add">Add tax</option><option value="subtract">Subtract tax</option></select>
+            <label for="staffTaxPercent">Tax percentage (%)</label>
+            <input id="staffTaxPercent" type="number" min="0" max="100" step="0.01" value="0" required disabled>
             <button class="primary" type="submit">Save rates</button>
           </form>
         </section>
         <section id="workTypesPanel" role="tabpanel" aria-labelledby="workTypesTab" hidden>
           <form id="workTypesForm" class="staff-form">
-            <p>Enable the default types this employee can select.</p>
+            <p>Choose which default types this employee can select.</p>
             <div id="defaultWorkTypes" class="staff-form"></div>
             <label class="work-types-switch"><input id="customTypesEnabled" type="checkbox" role="switch"><span class="switch-track" aria-hidden="true"></span>Enable custom work types</label>
             <div id="customWorkTypes" class="staff-form" hidden>
-              <p>Add up to three types for this employee only. Leave unused names blank.</p>
               <div class="custom-type-row"><input type="checkbox" data-custom-enabled="1" aria-label="Enable custom work type 1" aria-controls="customType1"><input id="customType1" data-custom-slot="1" aria-label="Custom type 1 name" placeholder="Work type name" maxlength="60" disabled></div>
               <div class="custom-type-row"><input type="checkbox" data-custom-enabled="2" aria-label="Enable custom work type 2" aria-controls="customType2"><input id="customType2" data-custom-slot="2" aria-label="Custom type 2 name" placeholder="Work type name" maxlength="60" disabled></div>
               <div class="custom-type-row"><input type="checkbox" data-custom-enabled="3" aria-label="Enable custom work type 3" aria-controls="customType3"><input id="customType3" data-custom-slot="3" aria-label="Custom type 3 name" placeholder="Work type name" maxlength="60" disabled></div>
@@ -181,6 +184,15 @@
           </form>
         </section>
       </fieldset>
+    </dialog>
+    <dialog id="csvDialog" class="invite-dialog staff-settings" aria-labelledby="csvTitle">
+      <h2 id="csvTitle">Download CSV</h2>
+      <p id="csvScope"></p>
+      <label class="work-type-check"><input id="csvIncludeRates" type="checkbox">Include rates and calculated totals</label>
+      <p class="csv-settings-help">Calculations use current saved rates and each employee's tax setting. Amounts are in AUD. Daily totals are before tax; tax is applied to each person's weekly total.</p>
+      <p id="csvMessage" role="status" aria-live="polite"></p>
+      <div id="csvPreview" class="csv-preview"></div>
+      <div class="staff-pagination"><button id="cancelCsv" class="outline" type="button">Cancel</button><button id="downloadCsv" class="primary" type="button" disabled>Download CSV</button></div>
     </dialog>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>

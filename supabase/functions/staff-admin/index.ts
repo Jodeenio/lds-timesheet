@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { handleTimesheets } from './timesheets.js';
+import { handleExport } from './exports.js';
 
 Deno.serve(async (req: Request) => {
   const appUrl = Deno.env.get('APP_URL');
@@ -30,6 +31,7 @@ Deno.serve(async (req: Request) => {
     try { body = await req.json(); } catch { return reply(400, { error: 'Invalid request.' }); }
     if (!body || typeof body !== 'object') return reply(400, { error: 'Invalid request.' });
     if (!['my-work-types', 'my-timesheet', 'submit-timesheet'].includes(body.action) && user.app_metadata?.role !== 'admin') return reply(403, { error: 'Administrator access required.' });
+    if (body.action === 'export-timesheets') return await handleExport({ admin, user, body, reply });
     if (['my-timesheet', 'submit-timesheet', 'list-timesheets', 'review-timesheet', 'admin-timesheet', 'adjust-timesheet'].includes(body.action)) return await handleTimesheets({ admin, user, body, reply });
     if (['my-work-types', 'work-types', 'save-work-types'].includes(body.action)) {
       const userId = body.action === 'my-work-types' ? user.id : body.userId;
@@ -144,16 +146,19 @@ Deno.serve(async (req: Request) => {
         return reply(200, { sent: true });
       }
       if (body.action === 'rates') {
-        const { data, error: ratesError } = await admin.from('staff_rates').select('regular,overtime,public_holiday,public_holiday_overtime,custom_rates,work_type_settings').eq('user_id', userId).maybeSingle();
-        if (ratesError) return reply(502, { error: 'Could not load rates. Check migrations 001, 002 and 005 have been applied.' });
-        const { custom_rates = {}, work_type_settings, ...rates } = data || {};
+        const { data, error: ratesError } = await admin.from('staff_rates').select('regular,overtime,public_holiday,public_holiday_overtime,custom_rates,work_type_settings,tax_mode,tax_percent').eq('user_id', userId).maybeSingle();
+        if (ratesError) return reply(502, { error: 'Could not load rates. Check the rates and export tax settings migrations have been applied.' });
+        const { custom_rates = {}, work_type_settings, tax_mode = 'none', tax_percent = 0, ...rates } = data || {};
         const customTypes = (work_type_settings?.customEnabled ? work_type_settings.customTypes || [] : []).flatMap((type: { key: string; label: string; enabled?: boolean }) => [
           { ...type, enabled: type.enabled !== false },
           { key: `${type.key}:overtime`, label: `${type.label} overtime`, enabled: type.enabled !== false },
         ]);
-        return reply(200, { rates, customRates: custom_rates, customTypes });
+        return reply(200, { rates, customRates: custom_rates, customTypes, tax: { mode: tax_mode, percent: tax_percent } });
       }
       const rates: Record<string, number | null> = {};
+      const taxMode = body.tax?.mode;
+      const taxPercent = body.tax?.percent;
+      if (!['none', 'add', 'subtract'].includes(taxMode) || typeof taxPercent !== 'number' || !Number.isFinite(taxPercent) || taxPercent < 0 || taxPercent > 100 || Math.abs(taxPercent * 100 - Math.round(taxPercent * 100)) > 0.00001) return reply(400, { error: 'Choose a tax operation and a percentage from 0 to 100 with up to two decimal places.' });
       const customRates = body.customRates;
       if (!customRates || typeof customRates !== 'object' || Array.isArray(customRates) ||
         Object.entries(customRates).some(([key, value]) => !/^custom:[123](:overtime)?$/.test(key) ||
@@ -167,8 +172,8 @@ Deno.serve(async (req: Request) => {
         }
         rates[key] = value;
       }
-      const { error: ratesError } = await admin.from('staff_rates').upsert({ user_id: userId, ...rates, custom_rates: customRates, updated_at: new Date().toISOString() });
-      if (ratesError) return reply(502, { error: 'Could not save rates. Check migrations 001, 002 and 005 have been applied.' });
+      const { error: ratesError } = await admin.from('staff_rates').upsert({ user_id: userId, ...rates, custom_rates: customRates, tax_mode: taxMode, tax_percent: taxPercent, updated_at: new Date().toISOString() });
+      if (ratesError) return reply(502, { error: 'Could not save rates. Check the rates and export tax settings migrations have been applied.' });
       return reply(200, { saved: true });
     }
     if (body.action === 'remove') {
