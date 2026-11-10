@@ -159,7 +159,7 @@
     --theme-switch: #687787;
     --theme-page: #181d25;
     --theme-focus: #8cd5b6;
-    --theme-surface-2: #242c37;
+    --theme-surface-2: #1b232e;
     --theme-muted-4: #c2cbd6;
     --theme-muted-5: #c2cbd6;
     --theme-muted-6: #c2cbd6;
@@ -536,7 +536,7 @@
 }
 
 .timesheet-week h3 {
-  padding: 14px 16px;
+  padding: 7px 7px 7px 16px;
   background: var(--theme-timesheet-header);
   border-radius: 8px;
   font-size: 16px;
@@ -548,6 +548,15 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.timesheet-week h3 .outline {
+  padding: 7px 10px;
+}
+
+.timesheet-week h3 .outline svg {
+  width: 16px;
+  height: 16px;
 }
 
 .submission-card {
