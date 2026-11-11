@@ -73,6 +73,16 @@
   --green: #236956;
   --line: var(--theme-border);
   --theme-link: #0000ee;
+  /* Account popup follows the page palette independently of the fixed header. */
+  --account-menu-scheme: light;
+  --account-menu-surface: var(--theme-surface);
+  --account-menu-text: var(--theme-text);
+  --account-menu-button-text: var(--theme-text-2);
+  --account-menu-border: var(--theme-border);
+  --account-menu-button-border: var(--theme-border-3);
+  --account-menu-muted: var(--theme-muted);
+  --account-menu-focus: var(--theme-focus);
+
   /* Fixed header palette for both device themes. */
   --header-surface: white;
   --header-border: #e2e9e3;
@@ -135,7 +145,8 @@
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --theme-surface: #242c37;
+    --account-menu-scheme: dark;
+    --theme-surface: #10131B;
     --theme-border: #596777;
     --theme-border-2: #8998a9;
     --theme-muted: #c2cbd6;
@@ -200,7 +211,7 @@
 
 }
 
-/* Keep the header and its account menu on their original palette. */
+/* Keep the main header on its original palette. */
 .lds-header {
   color-scheme: light;
   --line: var(--header-border);
@@ -812,6 +823,13 @@ button:disabled {
   }
 
   .account-details {
+    color-scheme: var(--account-menu-scheme);
+    --theme-surface: var(--account-menu-surface);
+    --theme-text: var(--account-menu-text);
+    --theme-text-2: var(--account-menu-button-text);
+    --theme-border-3: var(--account-menu-button-border);
+    --theme-focus: var(--account-menu-focus);
+    --line: var(--account-menu-border);
     display: none;
     position: absolute;
     top: calc(100% + 12px);
@@ -836,7 +854,8 @@ button:disabled {
     overflow-wrap: anywhere;
   }
 
-  .account-details .saved {
+  .lds-header .account-details .saved {
+    color: var(--account-menu-muted);
     margin-left: 0;
   }
 
