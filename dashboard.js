@@ -227,6 +227,33 @@
       const menuOptions = document.createElement('div');
       menuOptions.className = 'timesheet-menu-options';
       menuOptions.append(edit, download);
+      if (isOwner) {
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'delete-timesheet';
+        remove.textContent = 'Delete timesheet';
+        remove.onclick = async () => {
+          menu.open = false;
+          if (!client || !isOwner || timesheetBusy) return;
+          if (!window.confirm(`Permanently delete ${sheet.employee_name}'s timesheet for the week of ${TempoTime.parseDate(sheet.week_start).toLocaleDateString('en-AU')}? This cannot be undone.`)) return;
+          const current = timesheetRequest;
+          timesheetBusy = true;
+          remove.disabled = true;
+          $('#timesheetsMessage').textContent = 'Deleting timesheet...';
+          try {
+            await call({ action: 'delete-timesheet', id: sheet.id, revision: sheet.revision });
+            if (current !== timesheetRequest) return;
+            timesheetBusy = false;
+            await loadTimesheets();
+          } catch (error) {
+            if (current === timesheetRequest) $('#timesheetsMessage').textContent = error.message;
+          } finally {
+            if (current === timesheetRequest) timesheetBusy = false;
+            remove.disabled = false;
+          }
+        };
+        menuOptions.append(remove);
+      }
       menu.append(toggle, menuOptions);
       entry.append(card, menu);
       group.append(entry);

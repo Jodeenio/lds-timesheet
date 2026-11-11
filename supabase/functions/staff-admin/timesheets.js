@@ -1,4 +1,4 @@
-import { isManager } from './roles.js';
+import { isManager, staffRole } from './roles.js';
 export function validWeek(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T12:00:00Z`);
@@ -105,6 +105,15 @@ export async function withAdjustmentNames(admin, sheets) {
 }
 
 export async function handleTimesheets({ admin, user, body, reply }) {
+  if (body.action === 'delete-timesheet') {
+    if (staffRole(user) !== 'owner') return reply(403, { error: 'Only owners can delete timesheets.' });
+    if (typeof body.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.id) ||
+      !Number.isSafeInteger(body.revision) || body.revision < 1) return reply(400, { error: 'Refresh the list and select a valid timesheet.' });
+    const { data, error } = await admin.from('timesheets').delete().eq('id', body.id).eq('revision', body.revision).select('id');
+    if (error) return reply(502, { error: 'Could not delete timesheet. Check the timesheet deletion migration has been applied.' });
+    if (!data?.length) return reply(409, { error: 'This timesheet changed or was already deleted. Refresh the list and try again.' });
+    return reply(200, { deleted: true });
+  }
   if (['admin-timesheet', 'adjust-timesheet', 'list-timesheets', 'review-timesheet'].includes(body.action) && !isManager(user)) return reply(403, { error: 'Administrator access required.' });
   if (['admin-timesheet', 'adjust-timesheet'].includes(body.action)) {
     if (typeof body.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.id)) return reply(400, { error: 'Select a valid timesheet.' });

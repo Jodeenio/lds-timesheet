@@ -701,6 +701,10 @@
   font: inherit;
 }
 
+.timesheet-menu-options .delete-timesheet {
+  color: var(--theme-danger);
+}
+
 .timesheet-menu-options a:hover, .timesheet-menu-options button:hover {
   background: var(--theme-subtle);
 }
