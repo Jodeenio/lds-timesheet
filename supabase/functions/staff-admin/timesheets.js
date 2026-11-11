@@ -131,12 +131,31 @@ export async function handleTimesheets({ admin, user, body, reply }) {
     return reply(200, { saved: true });
   }
   if (body.action === 'list-timesheets') {
-    const page = body.page ?? 1;
-    if (!Number.isSafeInteger(page) || page < 1 || page > 10000) return reply(400, { error: 'Invalid page.' });
-    const { data, error } = await admin.from('timesheets').select('*').order('week_start', { ascending: false }).order('submitted_at', { ascending: false }).order('id').range((page - 1) * 50, page * 50);
-    if (error) return reply(502, { error: 'Could not load timesheets. Check migration 006 has been applied.' });
-    const timesheets = await withAdjustmentNames(admin, data.slice(0, 50));
-    return reply(200, { timesheets, hasMore: data.length > 50 });
+    if (body.beforeWeek != null && !validWeek(body.beforeWeek)) return reply(400, { error: 'Select a valid week cursor.' });
+    // Find three distinct weeks and look ahead one week for the Load more button.
+    const weeks = [];
+    let beforeWeek = body.beforeWeek;
+    for (let i = 0; i < 4; i++) {
+      let query = admin.from('timesheets').select('week_start').order('week_start', { ascending: false }).limit(1);
+      if (beforeWeek) query = query.lt('week_start', beforeWeek);
+      const { data, error } = await query;
+      if (error) return reply(502, { error: 'Could not load timesheet weeks. Try again.' });
+      if (!data?.length) break;
+      beforeWeek = data[0].week_start;
+      weeks.push(beforeWeek);
+    }
+    const selectedWeeks = weeks.slice(0, 3);
+    const sheets = [];
+    // Fetch every submission for these weeks, including weeks above the API row limit.
+    if (selectedWeeks.length) for (let offset = 0; ; offset += 500) {
+      const { data, error } = await admin.from('timesheets').select('*').in('week_start', selectedWeeks)
+        .order('week_start', { ascending: false }).order('submitted_at', { ascending: false }).order('id').range(offset, offset + 499);
+      if (error) return reply(502, { error: 'Could not load timesheets. Try again.' });
+      sheets.push(...data);
+      if (data.length < 500) break;
+    }
+    const timesheets = await withAdjustmentNames(admin, sheets);
+    return reply(200, { timesheets, hasMore: weeks.length > 3, nextBeforeWeek: selectedWeeks.at(-1) || null });
   }
   if (body.action === 'review-timesheet') {
     if (typeof body.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.id) || !['approved', 'denied'].includes(body.status) || typeof body.submittedAt !== 'string') return reply(400, { error: 'Select a valid timesheet and review action.' });

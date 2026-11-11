@@ -8,7 +8,7 @@
 
   let workTypesLoaded = false;
   let savedCustomRates = {};
-  let timesheetRows = [], timesheetPage = 1, timesheetRequest = 0, timesheetBusy = false;
+  let timesheetRows = [], timesheetBeforeWeek = null, timesheetRequest = 0, timesheetBusy = false;
   const csvDialog = $('#csvDialog');
   let csvScope = null, csvOutput = null, csvRequest = 0;
   document.addEventListener('click', event => {
@@ -233,16 +233,16 @@
   async function loadTimesheets(more = false) {
     if (!client || timesheetBusy) return;
     const current = ++timesheetRequest;
-    const nextPage = more ? timesheetPage + 1 : 1;
+    const beforeWeek = more ? timesheetBeforeWeek : null;
     timesheetBusy = true;
     $('#refreshTimesheets').disabled = $('#moreTimesheets').disabled = true;
     $('#timesheetsMessage').textContent = 'Loading timesheets...';
     try {
-      const result = await call({ action: 'list-timesheets', page: nextPage });
+      const result = await call({ action: 'list-timesheets', beforeWeek });
       if (current !== timesheetRequest) return;
       timesheetRows = [...new Map([...(more ? timesheetRows : []), ...result.timesheets].map(sheet => [sheet.id, sheet])).values()]
         .sort((a, b) => b.week_start.localeCompare(a.week_start) || b.submitted_at.localeCompare(a.submitted_at));
-      timesheetPage = nextPage;
+      timesheetBeforeWeek = result.nextBeforeWeek;
       renderTimesheets();
       $('#moreTimesheets').hidden = !result.hasMore;
       $('#timesheetsMessage').textContent = timesheetRows.length ? '' : 'No submitted timesheets yet.';
@@ -571,6 +571,7 @@
     csvDialog.close();
     timesheetBusy = false;
     timesheetRows = [];
+    timesheetBeforeWeek = null;
     $('#submittedTimesheets').replaceChildren();
     ++request;
     ++settingsRequest;

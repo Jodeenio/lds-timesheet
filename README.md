@@ -131,3 +131,5 @@ Run the role permission tests with `deno test supabase/functions/staff-admin/rol
 ### Adjustment attribution
 
 Expanded dashboard timesheets show **Adjusted by [name]** for the latest adjustment, using the recorded editor account ID to look up their current name. Missing accounts or unavailable names display **Unknown Admin**. Names are not saved with adjustments. Deploy the updated dashboard files and staff-admin function (including timesheets.js); no migration or additional JavaScript file is needed.
+
+Dashboard timesheets load the latest three weeks containing submissions. Load more appends the next three older weeks and is hidden when none remain. Each selected week includes all submissions, even beyond the API row limit. Deploy dashboard.js and the updated staff-admin/timesheets.js together for this cursor-based pagination.
