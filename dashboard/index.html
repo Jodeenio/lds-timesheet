@@ -198,6 +198,20 @@
         </section>
       </fieldset>
     </dialog>
+    <dialog id="removeStaffDialog" class="invite-dialog" aria-labelledby="removeStaffTitle" aria-describedby="removeStaffDescription">
+      <h2 id="removeStaffTitle">Remove employee</h2>
+      <p id="removeStaffDescription"></p>
+      <form id="removeStaffForm" class="staff-form">
+        <label class="work-type-check"><input id="keepApprovedTimesheets" type="checkbox" checked>Keep approved timesheets</label>
+        <p id="removalOutcome">Approved timesheets will be kept. Pending and denied timesheets, the account, and staff settings will be permanently deleted.</p>
+        <p>This cannot be undone. Drafts saved on their devices cannot be removed remotely.</p>
+        <p id="removeStaffMessage" role="status" aria-live="polite"></p>
+        <div class="staff-pagination">
+          <button id="cancelRemoveStaff" class="outline" type="button">Cancel</button>
+          <button id="confirmRemoveStaff" class="primary" type="submit">Permanently remove employee</button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="csvDialog" class="invite-dialog staff-settings" aria-labelledby="csvTitle">
       <h2 id="csvTitle">Download CSV</h2>
       <p id="csvScope"></p>
@@ -210,7 +224,7 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="time.js"></script>
-    <script src="dashboard.js?v=adjustment-names-1"></script>
+    <script src="dashboard.js?v=staff-removal-1"></script>
     <script src="auth.js?v=owner-roles-1"></script>
   </body>
 </html>

@@ -184,6 +184,7 @@ Deno.serve(async (req: Request) => {
       return reply(200, { saved: true });
     }
     if (body.action === 'remove') {
+      if (typeof body.keepApprovedTimesheets !== 'boolean') return reply(400, { error: 'Choose whether to keep approved timesheets.' });
       const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
         return reply(400, { error: 'Select a valid staff account.' });
@@ -192,8 +193,15 @@ Deno.serve(async (req: Request) => {
       const { data: target, error: targetError } = await admin.auth.admin.getUserById(userId);
       if (targetError || !target.user) return reply(404, { error: 'Staff account could not be found. Refresh the list and try again.' });
       if (!canRemoveStaff(user, target.user)) return reply(403, { error: 'Owner accounts cannot be removed. Only owners can remove administrators.' });
+      const { error: choiceError } = await admin.from('staff_removal_requests').upsert({
+        user_id: userId, keep_approved_timesheets: body.keepApprovedTimesheets,
+      });
+      if (choiceError) return reply(502, { error: 'Could not prepare account removal. Check the staff removal migration has been applied.' });
       const { error: removeError } = await admin.auth.admin.deleteUser(userId);
-      if (removeError) return reply(502, { error: 'Could not remove staff. Try again or check Supabase Auth logs.' });
+      if (removeError) {
+        await admin.from('staff_removal_requests').delete().eq('user_id', userId);
+        return reply(502, { error: 'Could not remove staff. No account or timesheet data was deleted. Try again or check Supabase Auth logs.' });
+      }
       return reply(200, { removed: true });
     }
     if (body.action === 'invite') {

@@ -3,6 +3,8 @@
   const dialog = $('#inviteDialog');
   let client = null, page = 1, request = 0, loading = false, removing = false;
   const settings = $('#staffSettings');
+  const removalDialog = $('#removeStaffDialog');
+  let removalTarget = null;
   let isOwner = false;
   let selected = null, settingsRequest = 0, settingsBusy = false, ratesLoaded = false;
 
@@ -498,12 +500,47 @@
     }
   };
   $('#removeStaff').onclick = () => {
-    if (!selected || !window.confirm(`Permanently remove ${selected.name || selected.email} (${selected.email})? This cannot be undone. Browser-saved timesheets remain on their device.`)) return;
-    void saveSettings({ action: 'remove' }, 'Employee removed.', async () => {
+    if (!selected || !selected.removable || settingsBusy || removing) return;
+    removalTarget = { ...selected };
+    $('#removeStaffDescription').textContent = `Remove ${selected.name || selected.email} (${selected.email})?`;
+    $('#keepApprovedTimesheets').checked = true;
+    $('#keepApprovedTimesheets').onchange();
+    $('#removeStaffMessage').textContent = '';
+    removalDialog.showModal();
+  };
+  $('#keepApprovedTimesheets').onchange = () => {
+    $('#removalOutcome').textContent = $('#keepApprovedTimesheets').checked
+      ? 'Approved timesheets will be kept. Pending and denied timesheets, the account, and staff settings will be permanently deleted.'
+      : 'All of this employee’s timesheets, account, and staff settings will be permanently deleted.';
+  };
+  $('#cancelRemoveStaff').onclick = () => { if (!removing) removalDialog.close(); };
+  removalDialog.addEventListener('cancel', event => { if (removing) event.preventDefault(); });
+  removalDialog.addEventListener('close', () => { removalTarget = null; });
+  $('#removeStaffForm').onsubmit = async event => {
+    event.preventDefault();
+    if (!client || !removalTarget || removing) return;
+    const target = removalTarget;
+    const current = settingsRequest;
+    removing = true;
+    settingsBusy = true;
+    $('#removeStaffForm').querySelectorAll('button, input').forEach(control => { control.disabled = true; });
+    $('#removeStaffMessage').textContent = 'Removing employee...';
+    try {
+      await call({ action: 'remove', userId: target.id, keepApprovedTimesheets: $('#keepApprovedTimesheets').checked });
+      if (current !== settingsRequest) return;
+      removalDialog.close();
       settings.close();
       page = 1;
-      await loadStaff();
-    });
+      // Allow the refreshed staff list to load after removal.
+      removing = false;
+      await Promise.all([loadStaff(), loadTimesheets()]);
+    } catch (error) {
+      if (current === settingsRequest) $('#removeStaffMessage').textContent = error.message;
+    } finally {
+      removing = false;
+      settingsBusy = false;
+      $('#removeStaffForm').querySelectorAll('button, input').forEach(control => { control.disabled = false; });
+    }
   };
 
   async function call(body) {
@@ -569,6 +606,7 @@
     ++csvRequest;
     csvOutput = null;
     csvDialog.close();
+    removalDialog.close();
     timesheetBusy = false;
     timesheetRows = [];
     timesheetBeforeWeek = null;
