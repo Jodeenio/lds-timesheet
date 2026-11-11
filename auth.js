@@ -17,6 +17,8 @@
   const dashboardUrl = new URL('dashboard/', document.baseURI);
   let client;
   let sessionCheck = 0;
+  let displayedIdentity;
+  let displayedUserId = null;
 
   function closeAccountMenu() {
     account.dataset.open = 'false';
@@ -49,6 +51,12 @@
 
   function showSession(session) {
     const user = session?.user || null;
+    const identity = user ? JSON.stringify([user.id, user.app_metadata?.role, user.email, user.user_metadata]) : 'signed-out';
+    // Focus and token refresh events can repeat without changing the account.
+    // Keep the current week, expanded rows, dialogs, and unsaved edits intact.
+    if (identity === displayedIdentity) return;
+    displayedIdentity = identity;
+    displayedUserId = user?.id || null;
     // Removing a submitted login form lets password managers detect success.
     // Keep its field values intact until the next signed-out state.
     if (user) {
@@ -78,8 +86,10 @@
 
   async function resolveSession(session) {
     const check = ++sessionCheck;
-    sheet.hidden = true;
-    account.hidden = true;
+    if (!session || session.user?.id !== displayedUserId) {
+      sheet.hidden = true;
+      account.hidden = true;
+    }
     if (!session) {
       if (dashboardPage) {
         location.replace(staffUrl.href);
@@ -93,7 +103,8 @@
       // Fetch the current server-controlled role, rather than trusting local metadata.
       const { data, error } = await client.auth.getUser(session.access_token);
       if (check !== sessionCheck) return;
-      if (error || !data.user) throw error || new Error('No user');
+      if (error) throw error;
+      if (!data.user) throw Object.assign(new Error('No user'), { status: 401 });
       const admin = ['admin', 'owner'].includes(data.user.app_metadata?.role);
       if (!admin && data.user.invited_at && !data.user.user_metadata?.onboarding_complete) {
         location.replace(new URL('welcome/', document.baseURI).href);
@@ -108,8 +119,11 @@
         return;
       }
       showSession({ user: data.user });
-    } catch {
+    } catch (error) {
       if (check !== sessionCheck) return;
+      // A temporary network failure on return should not discard an open page.
+      // Expired/revoked sessions still clear the workspace.
+      if (displayedUserId && session.user?.id === displayedUserId && (!error.status || error.status >= 500)) return;
       showSession(null);
       message.textContent = 'Could not verify your account. Check your connection and sign in again.';
     }
