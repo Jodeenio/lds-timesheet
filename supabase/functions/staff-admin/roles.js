@@ -12,6 +12,11 @@ export function canChangeRole(user, staff) {
   return staffRole(user) === 'owner' && user.id !== staff.id && staffRole(staff) !== 'owner';
 }
 
+export function canRemoveStaff(user, staff) {
+  return isManager(user) && user.id !== staff.id && staffRole(staff) !== 'owner' &&
+    (staffRole(staff) !== 'admin' || staffRole(user) === 'owner');
+}
+
 export async function changeRole({ admin, user, staff, role, reply }) {
   if (!canChangeRole(user, staff)) return reply(403, { error: 'Only owners can change other staff or administrator roles. Owner accounts must be managed in Supabase.' });
   if (!['admin', 'staff'].includes(role)) return reply(400, { error: 'Choose Admin or Staff.' });

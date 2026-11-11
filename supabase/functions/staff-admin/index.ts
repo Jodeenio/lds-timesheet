@@ -1,4 +1,4 @@
-import { staffRole, isManager, canChangeRole, changeRole } from './roles.js';
+import { staffRole, isManager, canChangeRole, canRemoveStaff, changeRole } from './roles.js';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { handleTimesheets } from './timesheets.js';
 import { handleExport } from './exports.js';
@@ -107,7 +107,7 @@ Deno.serve(async (req: Request) => {
           lastName: metadata.last_name ?? parts.join(' '), email: staff.email || '', phone: metadata.phone || '',
           role: staffRole(staff), canChangeRole: canChangeRole(user, staff),
           canResendInvite: !metadata.onboarding_complete,
-          removable: staff.id !== user.id && !isManager(staff) });
+          removable: canRemoveStaff(user, staff) });
       }
       if (body.action === 'resend-invite') {
         if (staff.user_metadata?.onboarding_complete) return reply(400, { error: 'This employee has already completed setup.' });
@@ -191,7 +191,7 @@ Deno.serve(async (req: Request) => {
       if (userId === user.id) return reply(403, { error: 'You cannot remove your own account.' });
       const { data: target, error: targetError } = await admin.auth.admin.getUserById(userId);
       if (targetError || !target.user) return reply(404, { error: 'Staff account could not be found. Refresh the list and try again.' });
-      if (isManager(target.user)) return reply(403, { error: 'Owner and administrator accounts cannot be removed from the staff dashboard.' });
+      if (!canRemoveStaff(user, target.user)) return reply(403, { error: 'Owner accounts cannot be removed. Only owners can remove administrators.' });
       const { error: removeError } = await admin.auth.admin.deleteUser(userId);
       if (removeError) return reply(502, { error: 'Could not remove staff. Try again or check Supabase Auth logs.' });
       return reply(200, { removed: true });

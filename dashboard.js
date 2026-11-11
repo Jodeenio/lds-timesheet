@@ -449,7 +449,7 @@
     if (!['admin', 'staff'].includes(role)) return;
     void saveSettings({ action: 'set-role', role }, 'Role saved.', async () => {
       selected.role = role;
-      selected.removable = role === 'staff';
+      selected.removable = role === 'staff' || (isOwner && role === 'admin');
       $('#removeStaff').hidden = !selected.removable;
       await loadStaff();
     });

@@ -1,9 +1,17 @@
-import { staffRole, isManager, canChangeRole, changeRole } from './roles.js';
+import { staffRole, isManager, canChangeRole, canRemoveStaff, changeRole } from './roles.js';
 
 const account = (id, role) => ({ id, app_metadata: { role, provider: 'email' } });
 const owner = account('owner', 'owner');
 const adminUser = account('admin', 'admin');
 const staff = account('staff', 'staff');
+Deno.test('owners can remove admins while owner accounts and self-removal stay protected', () => {
+  assert(canRemoveStaff(owner, adminUser), 'Owner can remove an admin');
+  assert(canRemoveStaff(owner, staff) && canRemoveStaff(adminUser, staff), 'Managers can remove staff');
+  assert(!canRemoveStaff(adminUser, account('other-admin', 'admin')), 'Admin cannot remove another admin');
+  assert(!canRemoveStaff(owner, owner) && !canRemoveStaff(adminUser, adminUser), 'Self-removal is blocked');
+  assert(!canRemoveStaff(owner, account('other-owner', 'owner')), 'Owner accounts cannot be removed');
+  assert(!canRemoveStaff(adminUser, owner) && !canRemoveStaff(staff, adminUser), 'Non-owners cannot remove privileged accounts');
+});
 function assert(value, message) {
   if (!value) throw new Error(message);
 }
