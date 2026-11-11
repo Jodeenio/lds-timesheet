@@ -1,3 +1,26 @@
 [functions.staff-admin]
 # Authentication is verified inside the function using auth.getUser().
 verify_jwt = false
+
+[auth]
+site_url = "https://lds-timesheet.vercel.app"
+additional_redirect_urls = ["https://lds-timesheet.vercel.app/", "https://lds-timesheet.vercel.app/welcome/", "https://lds-timesheet.vercel.app/welcome/?mode=reset"]
+enable_signup = false
+
+[auth.email]
+enable_signup = false
+enable_confirmations = true
+otp_length = 6
+otp_expiry = 3600
+
+[auth.email.template.magic_link]
+subject = "Your LDS Staff sign-in code"
+content_path = "./supabase/templates/magic-link.html"
+
+[auth.passkey]
+enabled = true
+
+[auth.webauthn]
+rp_display_name = "LDS Staff"
+rp_id = "lds-timesheet.vercel.app"
+rp_origins = ["https://lds-timesheet.vercel.app"]

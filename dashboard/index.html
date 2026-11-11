@@ -67,6 +67,7 @@
                     <span class="staff-name" data-staff-name></span>
                     <span id="staffEmail"></span>
                   </div>
+                  <button class="outline" id="setupPasskey" type="button">Set up passkey</button>
                   <button class="outline" id="signOut" type="button">Sign out</button>
                 </div>
               </div>
@@ -82,8 +83,31 @@
         <label for="staffPassword">Password</label>
         <input id="staffPassword" name="password" type="password" autocomplete="current-password" required>
         <button class="primary" id="loginButton" type="submit" disabled>Sign in</button>
-        <button class="textbutton" id="emailLink" type="button" disabled>Email me a sign-in link</button>
+        <button class="textbutton" id="emailLink" type="button" disabled>More sign-in options</button>
       </form>
+      <div id="alternateSignIn" class="auth-choices" hidden>
+        <div id="signInChoices" class="auth-choices-buttons">
+          <button id="emailOtpOption" class="outline" type="button">Sign in with email OTP</button>
+          <button id="passkeySignIn" class="outline" type="button">Sign in with passkey</button>
+        </div>
+        <div id="emailOtpPanel" hidden>
+          <form id="otpRequestForm">
+            <label for="otpEmail">Email address</label>
+            <input id="otpEmail" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" required>
+            <button class="primary" type="submit">Send sign-in code</button>
+          </form>
+          <form id="otpVerifyForm" hidden>
+            <p id="otpSentTo"></p>
+            <label for="otpCode">Sign-in code</label>
+            <input id="otpCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" minlength="6" maxlength="10" required>
+            <button class="primary" type="submit">Verify code and sign in</button>
+            <button id="resendOtp" class="textbutton" type="button">Resend code</button>
+            <button id="changeOtpEmail" class="textbutton" type="button">Use a different email</button>
+          </form>
+          <button id="backSignInOptions" class="textbutton" type="button">Back to sign-in options</button>
+        </div>
+        <button id="passwordSignIn" class="textbutton" type="button">Back to email and password</button>
+      </div>
       <p id="authMessage" role="status" aria-live="polite">Connecting to staff sign in...</p>
       <p class="auth-help">Need access? Ask your LDS administrator for a staff account.</p>
     </section>
@@ -228,10 +252,19 @@
       <div id="csvPreview" class="csv-preview"></div>
       <div class="staff-pagination"><button id="cancelCsv" class="outline" type="button">Cancel</button><button id="downloadCsv" class="primary" type="button" disabled>Download CSV</button></div>
     </dialog>
+    <dialog id="passkeyDialog" class="invite-dialog" aria-labelledby="passkeyTitle">
+      <h2 id="passkeyTitle">Set up a passkey</h2>
+      <p>Save a passkey to your device or password manager, then use it to sign in without entering a password.</p>
+      <p id="passkeyMessage" role="status" aria-live="polite"></p>
+      <div class="staff-pagination">
+        <button id="createPasskey" class="primary" type="button">Create passkey</button>
+        <button id="closePasskeyDialog" class="outline" type="button">Close</button>
+      </div>
+    </dialog>
     <script src="supabase-config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0/dist/umd/supabase.js"></script>
     <script src="time.js"></script>
     <script src="dashboard.js?v=approval-indicator-1"></script>
-    <script src="auth.js?v=preserve-session-view-1"></script>
+    <script src="auth.js?v=otp-passkey-1"></script>
   </body>
 </html>

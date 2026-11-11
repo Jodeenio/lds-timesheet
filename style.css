@@ -306,6 +306,25 @@
   margin-top: 8px;
 }
 
+.auth-choices,
+.auth-choices-buttons {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-choices {
+  margin-top: 24px;
+}
+
+.auth-choices .outline {
+  width: 100%;
+  min-height: 44px;
+}
+
+.auth-choices .textbutton {
+  margin-left: 0;
+}
+
 .auth-help {
   font-size: 12px;
   color: var(--theme-muted);

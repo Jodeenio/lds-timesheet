@@ -143,3 +143,23 @@ The server requires an explicit boolean choice and keeps existing owner/admin re
 ### Owner timesheet deletion
 
 Apply `supabase/migrations/202611110002_owner_timesheet_deletion.sql`, then deploy the updated dashboard/style files and staff-admin function. Owners see **Delete timesheet** in each submission menu, for any status and for retained records from removed staff. Deletion requires confirmation and a matching revision; Admin and Staff requests are rejected by the server. Deletion permanently removes that submitted record, including its adjustment history. Browser-local drafts are unaffected; staff can submit the week again after deletion. Mocked permission and failure checks passed; no real timesheets were deleted.
+
+## Email OTP and passkey sign-in
+
+The password screen now offers **More sign-in options**, which replaces its fields with **Sign in with email OTP** and **Sign in with passkey**. Email OTP has an email step, code verification, resend cooldown, and a return to password sign-in. Requests set `shouldCreateUser: false` so they cannot create uninvited accounts. Signed-in staff, admins and owners can open **Set up passkey** from the header account controls. Registration and sign-in use Supabase's native WebAuthn APIs, followed by the existing server-verified role routing.
+
+The browser SDK is pinned to 2.105.0, with passkey opt-in enabled. Supabase documents passkeys as experimental. The production relying party is configured for **lds-timesheet.vercel.app**; passkeys require HTTPS and are bound to that RP ID. Do not change it after users enrol without planning re-registration. Browser checks used mocked auth responses; real email delivery and device passkey ceremonies still need testing on the deployed HTTPS site.
+
+### Apply to the hosted Supabase project
+
+Local files do not change the hosted project's Auth settings automatically. No Supabase management credential was available during implementation, so these hosted settings have **not** been applied:
+
+1. In **Authentication > URL Configuration**, set Site URL to `https://lds-timesheet.vercel.app` and allow `/`, `/welcome/`, and `/welcome/?mode=reset` on that origin. Keep any other redirect URLs your deployment needs.
+2. Under Email authentication, keep email sign-in enabled and public signups disabled. Set the OTP length to 6 and expiration to 3600 seconds. Existing staff are provisioned through invitations.
+3. In **Authentication > Email Templates > Magic Link**, set subject to **Your LDS Staff sign-in code** and paste `supabase/templates/magic-link.html` as the body. It includes `{{ .Token }}` for code entry and retains `{{ .ConfirmationURL }}` for the existing confirmed-account invitation resend flow. Leave Invite User and password recovery templates intact. Use the project's configured SMTP service.
+4. In **Authentication > Passkeys**, enable passkeys. Set Relying Party Display Name to **LDS Staff**, ID to **lds-timesheet.vercel.app**, and allowed origin to **https://lds-timesheet.vercel.app**.
+5. Deploy `index.html`, `dashboard/index.html`, `welcome/index.html`, `auth.js`, and `style.css`. Sign in using a password or email OTP, select **Set up passkey**, register it, then sign out and test **More sign-in options > Sign in with passkey** on the same domain. No Edge Function or database migration is needed.
+
+Equivalent configuration is prepared in `supabase/config.toml`. Review the hosted project's existing Auth settings before applying CLI configuration so unrelated settings are preserved. Preview deployments on other Vercel hostnames are not valid origins for these production passkeys; use the production domain for enrolment/testing.
+
+References: [Supabase passkeys](https://supabase.com/docs/guides/auth/passkeys), [email OTP](https://supabase.com/docs/guides/auth/auth-email-passwordless).
