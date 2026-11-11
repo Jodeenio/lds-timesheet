@@ -23,7 +23,8 @@
   const accountToggle = document.querySelector('#accountToggle');
   const config = window.LDS_SUPABASE;
   const dashboardPage = document.body.dataset.page === 'dashboard';
-  const editingTimesheet = !dashboardPage && new URLSearchParams(location.search).has('editTimesheet');
+  const accountPage = document.body.dataset.page === 'account';
+  const editingTimesheet = !dashboardPage && !accountPage && new URLSearchParams(location.search).has('editTimesheet');
   const staffUrl = new URL('index.html', document.baseURI);
   const dashboardUrl = new URL('dashboard/', document.baseURI);
   let client;
@@ -107,7 +108,7 @@
     }
     if (!user) {
       showSignInView('password');
-      passkeyDialog.close();
+      passkeyDialog?.close();
       otpAddress = '';
       otpCode.value = '';
       clearTimeout(resendTimer);
@@ -117,6 +118,13 @@
     sheet.hidden = !user;
     account.hidden = !user;
     if (user && dashboardPage) document.title = 'LDS Staff | Admin dashboard';
+    if (user && accountPage) {
+      document.title = 'LDS Staff | Account settings';
+      const back = document.querySelector('#accountBack');
+      const manager = ['admin', 'owner'].includes(user.app_metadata?.role);
+      back.href = manager ? dashboardUrl.href : staffUrl.href;
+      back.textContent = manager ? 'Back to dashboard' : 'Back to timesheet';
+    }
     closeAccountMenu();
     const staffName = user ? (user.user_metadata?.full_name?.trim() || 'Staff') : '';
     document.querySelectorAll('[data-staff-name]').forEach(element => {
@@ -125,7 +133,7 @@
     });
     document.querySelector('#staffEmail').textContent = user?.email || '';
     document.dispatchEvent(new CustomEvent('staff-session', { detail: user }));
-    if (!dashboardPage) document.dispatchEvent(new CustomEvent('staff-client', { detail: user ? { user, client } : null }));
+    if (!dashboardPage && !accountPage) document.dispatchEvent(new CustomEvent('staff-client', { detail: user ? { user, client } : null }));
     if (dashboardPage) {
       document.dispatchEvent(new CustomEvent('admin-session', { detail: user ? { user, client } : null }));
     }
@@ -138,7 +146,7 @@
       account.hidden = true;
     }
     if (!session) {
-      if (dashboardPage) {
+      if (dashboardPage || accountPage) {
         location.replace(staffUrl.href);
         return;
       }
@@ -157,7 +165,7 @@
         location.replace(new URL('welcome/', document.baseURI).href);
         return;
       }
-      if (admin !== dashboardPage && !(admin && editingTimesheet)) {
+      if (!accountPage && admin !== dashboardPage && !(admin && editingTimesheet)) {
         location.replace(admin ? dashboardUrl.href : staffUrl.href);
         return;
       }
@@ -287,36 +295,38 @@
     } finally { busy(false); }
   };
 
-  document.querySelector('#setupPasskey').onclick = () => {
-    closeAccountMenu();
-    passkeyMessage.textContent = '';
-    passkeyDialog.showModal();
-  };
-  document.querySelector('#closePasskeyDialog').onclick = () => { if (!creatingPasskey) passkeyDialog.close(); };
-  passkeyDialog.addEventListener('cancel', event => { if (creatingPasskey) event.preventDefault(); });
-  document.querySelector('#createPasskey').onclick = async () => {
-    if (creatingPasskey || !displayedUserId) return;
-    if (!passkeysSupported() || typeof client.auth.registerPasskey !== 'function') {
-      passkeyMessage.textContent = 'Passkeys are unavailable in this browser. Open the site over HTTPS in a supported browser.';
-      return;
-    }
-    const userId = displayedUserId;
-    creatingPasskey = true;
-    passkeyDialog.querySelectorAll('button').forEach(button => { button.disabled = true; });
-    signOut.disabled = true;
-    passkeyMessage.textContent = 'Follow your device’s instructions to create a passkey...';
-    try {
-      const { error } = await client.auth.registerPasskey();
-      if (userId !== displayedUserId) return;
-      passkeyMessage.textContent = error ? 'Could not create a passkey. Try again or contact your administrator.' : 'Passkey saved. You can now choose Sign in with passkey next time.';
-    } catch {
-      if (userId === displayedUserId) passkeyMessage.textContent = 'Passkey setup was not completed. Please try again.';
-    } finally {
-      creatingPasskey = false;
-      passkeyDialog.querySelectorAll('button').forEach(button => { button.disabled = false; });
-      signOut.disabled = false;
-    }
-  };
+  if (passkeyDialog) {
+    document.querySelector('#setupPasskey').onclick = () => {
+      closeAccountMenu();
+      passkeyMessage.textContent = '';
+      passkeyDialog.showModal();
+    };
+    document.querySelector('#closePasskeyDialog').onclick = () => { if (!creatingPasskey) passkeyDialog.close(); };
+    passkeyDialog.addEventListener('cancel', event => { if (creatingPasskey) event.preventDefault(); });
+    document.querySelector('#createPasskey').onclick = async () => {
+      if (creatingPasskey || !displayedUserId) return;
+      if (!passkeysSupported() || typeof client.auth.registerPasskey !== 'function') {
+        passkeyMessage.textContent = 'Passkeys are unavailable in this browser. Open the site over HTTPS in a supported browser.';
+        return;
+      }
+      const userId = displayedUserId;
+      creatingPasskey = true;
+      passkeyDialog.querySelectorAll('button').forEach(button => { button.disabled = true; });
+      signOut.disabled = true;
+      passkeyMessage.textContent = 'Follow your device’s instructions to create a passkey...';
+      try {
+        const { error } = await client.auth.registerPasskey();
+        if (userId !== displayedUserId) return;
+        passkeyMessage.textContent = error ? 'Could not create a passkey. Try again or contact your administrator.' : 'Passkey saved. You can now choose Sign in with passkey next time.';
+      } catch {
+        if (userId === displayedUserId) passkeyMessage.textContent = 'Passkey setup was not completed. Please try again.';
+      } finally {
+        creatingPasskey = false;
+        passkeyDialog.querySelectorAll('button').forEach(button => { button.disabled = false; });
+        signOut.disabled = false;
+      }
+    };
+  }
 
   signOut.addEventListener('click', async () => {
     signOut.disabled = true;

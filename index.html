@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>LDS Staff &middot; Sign in</title>
     <meta name="description" content="Enter your daily start and end times, one week at a time.">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=account-settings-1">
     <link rel="stylesheet" href="header.css">
   </head>
   <body>
@@ -56,11 +56,11 @@
                 </button>
                 <div class="account-details" id="accountDetails">
                   <div class="staff-identity">
-                    <span class="staff-name" data-staff-name></span>
+                    <a class="staff-name account-name-link" href="account/" data-staff-name aria-label="Open account settings"></a>
                     <span id="staffEmail"></span>
                   </div>
                   <span class="saved" id="saveStatus" role="status">Saved on this device</span>
-                  <button class="outline" id="setupPasskey" type="button">Set up passkey</button>
+                  <a class="outline mobile-account-settings" href="account/">Account settings</a>
                   <button class="outline" id="signOut" type="button">Sign out</button>
                 </div>
               </div>
@@ -163,17 +163,8 @@
     </script>
     <script src="app.js">
     </script>
-    <dialog id="passkeyDialog" class="invite-dialog" aria-labelledby="passkeyTitle">
-      <h2 id="passkeyTitle">Set up a passkey</h2>
-      <p>Save a passkey to your device or password manager, then use it to sign in without entering a password.</p>
-      <p id="passkeyMessage" role="status" aria-live="polite"></p>
-      <div class="staff-pagination">
-        <button id="createPasskey" class="primary" type="button">Create passkey</button>
-        <button id="closePasskeyDialog" class="outline" type="button">Close</button>
-      </div>
-    </dialog>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0/dist/umd/supabase.js"></script>
-    <script src="auth.js?v=otp-passkey-1"></script>
+    <script src="auth.js?v=account-settings-1"></script>
   </body>
 </html>

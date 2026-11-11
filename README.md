@@ -146,7 +146,7 @@ Apply `supabase/migrations/202611110002_owner_timesheet_deletion.sql`, then depl
 
 ## Email OTP and passkey sign-in
 
-The password screen now offers **More sign-in options**, which replaces its fields with **Sign in with email OTP** and **Sign in with passkey**. Email OTP has an email step, code verification, resend cooldown, and a return to password sign-in. Requests set `shouldCreateUser: false` so they cannot create uninvited accounts. Signed-in staff, admins and owners can open **Set up passkey** from the header account controls. Registration and sign-in use Supabase's native WebAuthn APIs, followed by the existing server-verified role routing.
+The password screen now offers **More sign-in options**, which replaces its fields with **Sign in with email OTP** and **Sign in with passkey**. Email OTP has an email step, code verification, resend cooldown, and a return to password sign-in. Requests set `shouldCreateUser: false` so they cannot create uninvited accounts. Signed-in staff, admins and owners can open **Account settings > Sign in > Set up passkey**. On desktop, click the staff name in the header; on mobile, choose Account settings above Sign out in the header menu. Registration and sign-in use Supabase's native WebAuthn APIs, followed by the existing server-verified role routing.
 
 The browser SDK is pinned to 2.105.0, with passkey opt-in enabled. Supabase documents passkeys as experimental. The production relying party is configured for **lds-timesheet.vercel.app**; passkeys require HTTPS and are bound to that RP ID. Do not change it after users enrol without planning re-registration. Browser checks used mocked auth responses; real email delivery and device passkey ceremonies still need testing on the deployed HTTPS site.
 
@@ -158,8 +158,12 @@ Local files do not change the hosted project's Auth settings automatically. No S
 2. Under Email authentication, keep email sign-in enabled and public signups disabled. Set the OTP length to 6 and expiration to 3600 seconds. Existing staff are provisioned through invitations.
 3. In **Authentication > Email Templates > Magic Link**, set subject to **Your LDS Staff sign-in code** and paste `supabase/templates/magic-link.html` as the body. It includes `{{ .Token }}` for code entry and retains `{{ .ConfirmationURL }}` for the existing confirmed-account invitation resend flow. Leave Invite User and password recovery templates intact. Use the project's configured SMTP service.
 4. In **Authentication > Passkeys**, enable passkeys. Set Relying Party Display Name to **LDS Staff**, ID to **lds-timesheet.vercel.app**, and allowed origin to **https://lds-timesheet.vercel.app**.
-5. Deploy `index.html`, `dashboard/index.html`, `welcome/index.html`, `auth.js`, and `style.css`. Sign in using a password or email OTP, select **Set up passkey**, register it, then sign out and test **More sign-in options > Sign in with passkey** on the same domain. No Edge Function or database migration is needed.
+5. Deploy `index.html`, `dashboard/index.html`, `welcome/index.html`, `auth.js`, and `style.css`. Sign in using a password or email OTP, open **Account settings > Sign in > Set up passkey**, register it, then sign out and test **More sign-in options > Sign in with passkey** on the same domain. No Edge Function or database migration is needed.
 
 Equivalent configuration is prepared in `supabase/config.toml`. Review the hosted project's existing Auth settings before applying CLI configuration so unrelated settings are preserved. Preview deployments on other Vercel hostnames are not valid origins for these production passkeys; use the production domain for enrolment/testing.
 
 References: [Supabase passkeys](https://supabase.com/docs/guides/auth/passkeys), [email OTP](https://supabase.com/docs/guides/auth/auth-email-passwordless).
+
+### Account settings page
+
+Deploy the new `account/index.html` page alongside the updated root/dashboard HTML, `auth.js`, and `style.css`. The page is available to signed-in Staff, Admin and Owner accounts and redirects signed-out visitors to sign in. The Sign in tab contains passkey setup; the Back link returns Staff to their timesheet and Admin/Owner accounts to the dashboard. Mocked Chrome checks covered all three roles, desktop/mobile account links, and passkey setup. No Supabase migration or Edge Function change is needed.
