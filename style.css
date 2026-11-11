@@ -382,7 +382,15 @@
 
 @media (max-width: 600px) {
   .lds-header .mobile-account-settings {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 15px;
+    border: 0;
+    background: transparent;
+    color: var(--account-menu-text);
+    font-size: 12px;
     text-align: center;
     text-decoration: none;
   }
