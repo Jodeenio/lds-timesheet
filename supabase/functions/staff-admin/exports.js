@@ -1,3 +1,4 @@
+import { isManager } from './roles.js';
 const rateColumns = { regular: 'regular', overtime: 'overtime', 'public holiday': 'public_holiday', 'public holiday overtime': 'public_holiday_overtime' };
 const roundDivide = (value, divisor) => (value + divisor / 2n) / divisor;
 const money = cents => `${cents < 0n ? '-' : ''}${(cents < 0n ? -cents : cents) / 100n}.${String((cents < 0n ? -cents : cents) % 100n).padStart(2, '0')}`;
@@ -65,7 +66,7 @@ export function buildTimesheetCSV(sheets, settings, includeRates) {
 }
 
 export async function handleExport({ admin, user, body, reply }) {
-  if (user.app_metadata?.role !== 'admin') return reply(403, { error: 'Administrator access required.' });
+  if (!isManager(user)) return reply(403, { error: 'Administrator access required.' });
   if (typeof body.includeRates !== 'boolean') return reply(400, { error: 'Choose whether to include rates.' });
   const individual = typeof body.id === 'string';
   if (individual ? !/^[0-9a-f-]{36}$/i.test(body.id) : typeof body.week !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.week)) return reply(400, { error: 'Select a valid sheet or week.' });

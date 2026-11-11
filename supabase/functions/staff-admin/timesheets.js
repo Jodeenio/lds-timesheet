@@ -1,3 +1,4 @@
+import { isManager } from './roles.js';
 export function validWeek(value) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T12:00:00Z`);
@@ -83,7 +84,7 @@ export function adjustmentMarks(before, after, previous = {}) {
 }
 
 export async function handleTimesheets({ admin, user, body, reply }) {
-  if (['admin-timesheet', 'adjust-timesheet', 'list-timesheets', 'review-timesheet'].includes(body.action) && user.app_metadata?.role !== 'admin') return reply(403, { error: 'Administrator access required.' });
+  if (['admin-timesheet', 'adjust-timesheet', 'list-timesheets', 'review-timesheet'].includes(body.action) && !isManager(user)) return reply(403, { error: 'Administrator access required.' });
   if (['admin-timesheet', 'adjust-timesheet'].includes(body.action)) {
     if (typeof body.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.id)) return reply(400, { error: 'Select a valid timesheet.' });
     const { data: sheet, error } = await admin.from('timesheets').select('*').eq('id', body.id).maybeSingle();

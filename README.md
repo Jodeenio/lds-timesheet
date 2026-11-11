@@ -64,7 +64,7 @@ The admin dashboard lists staff accounts above the timesheet section. **Add staf
 1. Deploy all site files, including `dashboard/`, `welcome/`, `dashboard.js` and `welcome.js`.
 2. In Supabase **Edge Functions > Secrets**, add `APP_URL` with your actual app base URL, for example `https://staff.ldsairandelectrical.com.au/`. If hosted under a subdirectory, include that path and a trailing slash. This server setting controls where invitations send users.
 3. Create and deploy an Edge Function named **staff-admin** using `supabase/functions/staff-admin/index.ts`. The hosted runtime supplies `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; never copy the service-role key into browser files.
-4. Disable the function's gateway **Verify JWT** / legacy JWT verification option. The function verifies the bearer token itself with Supabase Auth and checks `app_metadata.role === 'admin'` for every request. This supports projects using the newer signing keys. CLI deployment reads this setting from `supabase/config.toml`.
+4. Disable the function's gateway **Verify JWT** / legacy JWT verification option. The function verifies the bearer token itself with Supabase Auth and checks for an `admin` or `owner` app metadata role on every privileged request. This supports projects using the newer signing keys. CLI deployment reads this setting from `supabase/config.toml`.
 5. Under **Authentication > URL Configuration > Redirect URLs**, add the exact welcome URL, for example `https://staff.ldsairandelectrical.com.au/welcome/`. Keep the existing staff URLs too.
 6. Configure production SMTP under Authentication. Keep the Invite user email template's confirmation link (`{{ .ConfirmationURL }}`), so Supabase verifies the invitation before redirecting to the welcome page.
 
@@ -117,3 +117,13 @@ Local drafts are accessible to someone with access to the browser profile. Signi
 - Check invalid credentials, a sign-in email callback, expired sessions, and sign out.
 
 Reference: [Supabase password login](https://supabase.com/docs/reference/javascript/auth-signinwithpassword) and [email OTP / magic links](https://supabase.com/docs/reference/javascript/auth-signinwithotp).
+
+## Owner role and Advanced settings
+
+Owners have all administrator capabilities. Only owners see **Employee settings > Advanced**, where they can change another Staff or Admin account to **Staff** or **Admin**. The server checks the current verified Auth app metadata on each request. Owners cannot assign the Owner role, change their own role, or change another Owner's role through the app. Owner and Admin accounts cannot be removed; demote an Admin to Staff before removing them. Non-owner admins cannot change Owner account details or send password reset/invitation emails for Owners.
+
+Provision or remove an Owner directly in Supabase: open the `auth.users` record and edit **raw_app_meta_data**, preserving its existing fields and setting the custom `role` key to `owner`. This is separate from the built-in `role` column, which must remain `authenticated`. Never put permissions in `raw_user_meta_data`. If your Table Editor does not expose the managed Auth schema, use the Supabase SQL Editor to update this existing Auth record instead; do not insert an Auth user. There is deliberately no Owner option in the app or its role-change endpoint. Sign out and back in after a direct Supabase role change.
+
+Deploy the updated static files and the entire `supabase/functions/staff-admin` directory, including the new **roles.js** helper (the test file does not need deployment). No database migration is required. Existing Admin and Staff assignments continue to work. Refreshed sessions route demoted accounts to the Staff workspace; server permissions change immediately on the next request.
+
+Run the role permission tests with `deno test supabase/functions/staff-admin/roles.test.js`. Verify an Owner can promote/demote other accounts, an Admin has no Advanced tab, and forged Admin/Staff role-change requests and requests assigning `owner` are rejected.

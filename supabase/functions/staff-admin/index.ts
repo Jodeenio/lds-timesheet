@@ -1,3 +1,4 @@
+import { staffRole, isManager, canChangeRole, changeRole } from './roles.js';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { handleTimesheets } from './timesheets.js';
 import { handleExport } from './exports.js';
@@ -30,7 +31,7 @@ Deno.serve(async (req: Request) => {
     let body;
     try { body = await req.json(); } catch { return reply(400, { error: 'Invalid request.' }); }
     if (!body || typeof body !== 'object') return reply(400, { error: 'Invalid request.' });
-    if (!['my-work-types', 'my-timesheet', 'submit-timesheet'].includes(body.action) && user.app_metadata?.role !== 'admin') return reply(403, { error: 'Administrator access required.' });
+    if (!['my-work-types', 'my-timesheet', 'submit-timesheet'].includes(body.action) && !isManager(user)) return reply(403, { error: 'Administrator access required.' });
     if (body.action === 'export-timesheets') return await handleExport({ admin, user, body, reply });
     if (['my-timesheet', 'submit-timesheet', 'list-timesheets', 'review-timesheet', 'admin-timesheet', 'adjust-timesheet'].includes(body.action)) return await handleTimesheets({ admin, user, body, reply });
     if (['my-work-types', 'work-types', 'save-work-types'].includes(body.action)) {
@@ -82,25 +83,31 @@ Deno.serve(async (req: Request) => {
           id: staff.id,
           email: staff.email || '',
           name: staff.user_metadata?.full_name || '',
-          role: staff.app_metadata?.role === 'admin' ? 'Admin' : 'Staff',
+          role: { owner: 'Owner', admin: 'Admin', staff: 'Staff' }[staffRole(staff)],
           status: staff.user_metadata?.onboarding_complete ? 'Active' : staff.invited_at && !staff.last_sign_in_at ? 'Invited' : 'Setup pending',
         })),
         hasMore: page * 50 < data.total,
       });
     }
-    if (['details', 'update', 'rates', 'save-rates', 'reset-password', 'resend-invite'].includes(body.action)) {
+    if (['details', 'update', 'rates', 'save-rates', 'reset-password', 'resend-invite', 'set-role'].includes(body.action)) {
       const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
       if (!/^[0-9a-f-]{36}$/i.test(userId)) return reply(400, { error: 'Select a valid staff account.' });
       const { data: target, error: targetError } = await admin.auth.admin.getUserById(userId);
       if (targetError || !target.user) return reply(404, { error: 'Staff account not found.' });
       const staff = target.user;
+      if (staffRole(staff) === 'owner' && staffRole(user) !== 'owner' &&
+        ['update', 'reset-password', 'resend-invite'].includes(body.action)) {
+        return reply(403, { error: 'Only owners can manage owner account details.' });
+      }
+      if (body.action === 'set-role') return await changeRole({ admin, user, staff, role: body.role, reply });
       if (body.action === 'details') {
         const metadata = staff.user_metadata || {};
         const parts = (metadata.full_name || '').trim().split(/\s+/);
         return reply(200, { id: staff.id, firstName: metadata.first_name ?? parts.shift() ?? '',
           lastName: metadata.last_name ?? parts.join(' '), email: staff.email || '', phone: metadata.phone || '',
+          role: staffRole(staff), canChangeRole: canChangeRole(user, staff),
           canResendInvite: !metadata.onboarding_complete,
-          removable: staff.id !== user.id && staff.app_metadata?.role !== 'admin' });
+          removable: staff.id !== user.id && !isManager(staff) });
       }
       if (body.action === 'resend-invite') {
         if (staff.user_metadata?.onboarding_complete) return reply(400, { error: 'This employee has already completed setup.' });
@@ -184,7 +191,7 @@ Deno.serve(async (req: Request) => {
       if (userId === user.id) return reply(403, { error: 'You cannot remove your own account.' });
       const { data: target, error: targetError } = await admin.auth.admin.getUserById(userId);
       if (targetError || !target.user) return reply(404, { error: 'Staff account could not be found. Refresh the list and try again.' });
-      if (target.user.app_metadata?.role === 'admin') return reply(403, { error: 'Administrator accounts cannot be removed from the staff dashboard.' });
+      if (isManager(target.user)) return reply(403, { error: 'Owner and administrator accounts cannot be removed from the staff dashboard.' });
       const { error: removeError } = await admin.auth.admin.deleteUser(userId);
       if (removeError) return reply(502, { error: 'Could not remove staff. Try again or check Supabase Auth logs.' });
       return reply(200, { removed: true });

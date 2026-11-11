@@ -3,6 +3,7 @@
   const dialog = $('#inviteDialog');
   let client = null, page = 1, request = 0, loading = false, removing = false;
   const settings = $('#staffSettings');
+  let isOwner = false;
   let selected = null, settingsRequest = 0, settingsBusy = false, ratesLoaded = false;
 
   let workTypesLoaded = false;
@@ -228,8 +229,9 @@
   $('#refreshTimesheets').onclick = () => { void loadTimesheets(); };
   $('#moreTimesheets').onclick = () => { void loadTimesheets(true); };
   function selectTab(tab) {
-    const name = tab === true ? 'rates' : tab === false ? 'general' : tab;
-    for (const key of ['general', 'rates', 'workTypes']) {
+    const requested = tab === true ? 'rates' : tab === false ? 'general' : tab;
+    const name = requested === 'advanced' && !isOwner ? 'general' : requested;
+    for (const key of ['general', 'rates', 'workTypes', 'advanced']) {
       const active = key === name;
       $(`#${key}Panel`).hidden = !active;
       $(`#${key}Tab`).setAttribute('aria-selected', String(active));
@@ -239,14 +241,15 @@
     if (name === 'workTypes' && !workTypesLoaded) void loadWorkTypes();
   }
   $('#workTypesTab').onclick = () => selectTab('workTypes');
+  $('#advancedTab').onclick = () => selectTab('advanced');
   $('#generalTab').onclick = () => selectTab(false);
   $('#ratesTab').onclick = () => selectTab(true);
   document.querySelector('.settings-tabs').addEventListener('keydown', event => {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
-    const tabs = ['general', 'rates', 'workTypes'];
+    const tabs = ['general', 'rates', 'workTypes', 'advanced'].filter(key => !$(`#${key}Tab`).hidden);
     const index = tabs.findIndex(key => `${key}Tab` === event.target.id);
-    const next = event.key === 'Home' ? 0 : event.key === 'End' ? 2 : (index + (event.key === 'ArrowRight' ? 1 : 2)) % 3;
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
     selectTab(tabs[next]);
     $(`#${tabs[next]}Tab`).focus();
   });
@@ -263,6 +266,9 @@
     $('#defaultWorkTypes').replaceChildren();
     $('#customWorkTypes').hidden = true;
     $('#generalForm').reset();
+    $('#roleForm').reset();
+    $('#roleForm').hidden = true;
+    $('#roleHelp').hidden = true;
     $('#ratesForm').reset();
     $('#customRateFields').replaceChildren();
     savedCustomRates = {};
@@ -275,6 +281,9 @@
       const data = await call({ action: 'details', userId: staff.id });
       if (current !== settingsRequest) return;
       selected = { ...staff, ...data };
+      $('#roleForm').hidden = !isOwner || !data.canChangeRole;
+      $('#roleHelp').hidden = !isOwner || data.canChangeRole;
+      $('#staffRole').value = data.role === 'admin' ? 'admin' : 'staff';
       for (const key of ['FirstName', 'LastName', 'Email', 'Phone']) {
         $(`#edit${key}`).value = data[key[0].toLowerCase() + key.slice(1)] || '';
       }
@@ -410,6 +419,18 @@
       $('#closeSettings').disabled = false;
     }
   }
+  $('#roleForm').onsubmit = event => {
+    event.preventDefault();
+    if (!isOwner || !selected?.canChangeRole) return;
+    const role = $('#staffRole').value;
+    if (!['admin', 'staff'].includes(role)) return;
+    void saveSettings({ action: 'set-role', role }, 'Role saved.', async () => {
+      selected.role = role;
+      selected.removable = role === 'staff';
+      $('#removeStaff').hidden = !selected.removable;
+      await loadStaff();
+    });
+  };
   $('#generalForm').onsubmit = event => {
     event.preventDefault();
     void saveSettings({ action: 'update', firstName: $('#editFirstName').value.trim(), lastName: $('#editLastName').value.trim(),
@@ -517,6 +538,9 @@
 
   document.addEventListener('admin-session', event => {
     client = event.detail?.client || null;
+    isOwner = event.detail?.user?.app_metadata?.role === 'owner';
+    $('#advancedTab').hidden = !isOwner;
+    if (!isOwner) selectTab('general');
     if (client) { void loadStaff(); void loadTimesheets(); return; }
     ++timesheetRequest;
     ++csvRequest;

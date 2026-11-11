@@ -138,6 +138,7 @@
         <button id="generalTab" role="tab" aria-selected="true" aria-controls="generalPanel" type="button">General</button>
         <button id="ratesTab" role="tab" aria-selected="false" aria-controls="ratesPanel" tabindex="-1" type="button">Rates</button>
         <button id="workTypesTab" role="tab" aria-selected="false" aria-controls="workTypesPanel" tabindex="-1" type="button">Work types</button>
+        <button id="advancedTab" role="tab" aria-selected="false" aria-controls="advancedPanel" tabindex="-1" type="button" hidden>Advanced</button>
       </div>
       <p id="settingsMessage" role="status" aria-live="polite"></p>
       <fieldset id="settingsFields" disabled>
@@ -182,6 +183,18 @@
             </div>
             <button class="primary" type="submit" disabled>Save work types</button>
           </form>
+        </section>
+        <section id="advancedPanel" role="tabpanel" aria-labelledby="advancedTab" hidden>
+          <form id="roleForm" class="staff-form" hidden>
+            <label for="staffRole">Account role</label>
+            <select id="staffRole" required>
+              <option value="staff">Staff</option>
+              <option value="admin">Admin</option>
+            </select>
+            <p>Admins can manage staff and review timesheets. Staff can manage their own timesheets.</p>
+            <button class="primary" type="submit">Save role</button>
+          </form>
+          <p id="roleHelp" hidden>Owner roles can only be changed in Supabase.</p>
         </section>
       </fieldset>
     </dialog>

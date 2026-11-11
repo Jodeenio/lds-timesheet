@@ -94,7 +94,7 @@
       const { data, error } = await client.auth.getUser(session.access_token);
       if (check !== sessionCheck) return;
       if (error || !data.user) throw error || new Error('No user');
-      const admin = data.user.app_metadata?.role === 'admin';
+      const admin = ['admin', 'owner'].includes(data.user.app_metadata?.role);
       if (!admin && data.user.invited_at && !data.user.user_metadata?.onboarding_complete) {
         location.replace(new URL('welcome/', document.baseURI).href);
         return;

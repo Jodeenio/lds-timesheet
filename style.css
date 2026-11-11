@@ -447,6 +447,7 @@
 
 .settings-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   border-bottom: 1px solid var(--line);
   margin-top: 20px;
