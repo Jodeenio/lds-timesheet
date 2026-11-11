@@ -563,6 +563,11 @@
   color: var(--theme-disabled-text);
 }
 
+#moreTimesheets {
+  display: block;
+  margin: 24px auto 0;
+}
+
 .timesheet-week {
   margin-top: 28px;
 }
