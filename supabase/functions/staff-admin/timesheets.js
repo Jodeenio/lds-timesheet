@@ -83,6 +83,27 @@ export function adjustmentMarks(before, after, previous = {}) {
   return marks;
 }
 
+export async function withAdjustmentNames(admin, sheets) {
+  const names = new Map();
+  return await Promise.all(sheets.map(async sheet => {
+    if (!sheet.adjusted_at) return sheet;
+    let name;
+    if (sheet.adjusted_by) {
+      if (!names.has(sheet.adjusted_by)) {
+        names.set(sheet.adjusted_by, (async () => {
+          try {
+            const { data, error } = await admin.auth.admin.getUserById(sheet.adjusted_by);
+            if (error) return null;
+            return data.user?.user_metadata?.full_name?.trim() || null;
+          } catch { return null; }
+        })());
+      }
+      name = await names.get(sheet.adjusted_by);
+    }
+    return { ...sheet, adjusted_by_name: name || 'Unknown Admin' };
+  }));
+}
+
 export async function handleTimesheets({ admin, user, body, reply }) {
   if (['admin-timesheet', 'adjust-timesheet', 'list-timesheets', 'review-timesheet'].includes(body.action) && !isManager(user)) return reply(403, { error: 'Administrator access required.' });
   if (['admin-timesheet', 'adjust-timesheet'].includes(body.action)) {
@@ -114,7 +135,8 @@ export async function handleTimesheets({ admin, user, body, reply }) {
     if (!Number.isSafeInteger(page) || page < 1 || page > 10000) return reply(400, { error: 'Invalid page.' });
     const { data, error } = await admin.from('timesheets').select('*').order('week_start', { ascending: false }).order('submitted_at', { ascending: false }).order('id').range((page - 1) * 50, page * 50);
     if (error) return reply(502, { error: 'Could not load timesheets. Check migration 006 has been applied.' });
-    return reply(200, { timesheets: data.slice(0, 50), hasMore: data.length > 50 });
+    const timesheets = await withAdjustmentNames(admin, data.slice(0, 50));
+    return reply(200, { timesheets, hasMore: data.length > 50 });
   }
   if (body.action === 'review-timesheet') {
     if (typeof body.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.id) || !['approved', 'denied'].includes(body.status) || typeof body.submittedAt !== 'string') return reply(400, { error: 'Select a valid timesheet and review action.' });

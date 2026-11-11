@@ -127,3 +127,7 @@ Provision or remove an Owner directly in Supabase: open the `auth.users` record 
 Deploy the updated static files and the entire `supabase/functions/staff-admin` directory, including the new **roles.js** helper (the test file does not need deployment). No database migration is required. Existing Admin and Staff assignments continue to work. Refreshed sessions route demoted accounts to the Staff workspace; server permissions change immediately on the next request.
 
 Run the role permission tests with `deno test supabase/functions/staff-admin/roles.test.js`. Verify an Owner can promote/demote other accounts, an Admin has no Advanced tab, and forged Admin/Staff role-change requests and requests assigning `owner` are rejected.
+
+### Adjustment attribution
+
+Expanded dashboard timesheets show **Adjusted by [name]** for the latest adjustment, using the recorded editor account ID to look up their current name. Missing accounts or unavailable names display **Unknown Admin**. Names are not saved with adjustments. Deploy the updated dashboard files and staff-admin function (including timesheets.js); no migration or additional JavaScript file is needed.

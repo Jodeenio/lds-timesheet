@@ -127,6 +127,12 @@
       submitted.textContent = `Submitted ${new Date(sheet.submitted_at).toLocaleString('en-AU')}`;
       summary.append(topRow, submitted);
       card.append(summary);
+      if (sheet.adjusted_at) {
+        const adjustment = document.createElement('p');
+        adjustment.className = 'admin-adjustment-notice';
+        adjustment.textContent = `Adjusted by ${sheet.adjusted_by_name || 'Unknown Admin'}`;
+        card.append(adjustment);
+      }
       const wrap = document.createElement('div');
       wrap.className = 'staff-table-wrap';
       const table = document.createElement('table');
