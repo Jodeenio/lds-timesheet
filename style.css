@@ -626,6 +626,16 @@
   font-weight: 600;
 }
 
+.adjusted-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--theme-adjustment-text);
+  vertical-align: middle;
+}
+
 .submission-status-pending {
   color: var(--theme-warning);
 }
@@ -721,6 +731,21 @@
 
 .admin-adjustment-notice, .admin-day-adjustment {
   color: var(--theme-adjustment-text);
+}
+
+.adjustment-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 11px;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: help;
 }
 
 .admin-day-adjustment {

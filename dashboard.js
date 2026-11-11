@@ -116,6 +116,14 @@
       const statusLabel = document.createElement('span');
       statusLabel.className = `submission-status submission-status-${sheet.status}`;
       statusLabel.textContent = status;
+      if (sheet.adjusted_at) {
+        const adjustedDot = document.createElement('span');
+        adjustedDot.className = 'adjusted-status-dot';
+        adjustedDot.title = 'Timesheet adjusted';
+        adjustedDot.setAttribute('role', 'img');
+        adjustedDot.setAttribute('aria-label', 'Timesheet adjusted');
+        statusLabel.prepend(adjustedDot);
+      }
       topRow.append(name, total, breakdown, statusLabel);
       if (sheet.status === 'denied' && sheet.denial_reason) {
         const reason = document.createElement('span');
@@ -131,6 +139,15 @@
         const adjustment = document.createElement('p');
         adjustment.className = 'admin-adjustment-notice';
         adjustment.textContent = `Adjusted by ${sheet.adjusted_by_name || 'Unknown Admin'}`;
+        if (!sheet.adjusted_by_name || sheet.adjusted_by_name === 'Unknown Admin') {
+          const help = document.createElement('span');
+          help.className = 'adjustment-help';
+          help.textContent = '?';
+          help.title = 'Admin account was unable to be found. User may have been removed or server is unreachable';
+          help.setAttribute('aria-label', help.title);
+          help.tabIndex = 0;
+          adjustment.append(help);
+        }
         card.append(adjustment);
       }
       const wrap = document.createElement('div');
