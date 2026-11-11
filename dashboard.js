@@ -12,6 +12,11 @@
   let savedCustomRates = {};
   let timesheetRows = [], timesheetBeforeWeek = null, timesheetRequest = 0, timesheetBusy = false;
   let pendingTimesheetCount = null;
+  $('#approvalIndicator').addEventListener('click', event => {
+    event.preventDefault();
+    const section = $('#submittedTimesheets');
+    section.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'start' });
+  });
   function showPendingCount(count) {
     pendingTimesheetCount = Number.isSafeInteger(count) && count >= 0 ? count : null;
     const indicator = $('#approvalIndicator');

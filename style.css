@@ -568,6 +568,10 @@
   margin: 24px auto 0;
 }
 
+#submittedTimesheets {
+  scroll-margin-top: 120px;
+}
+
 .timesheet-week {
   margin-top: 28px;
 }
