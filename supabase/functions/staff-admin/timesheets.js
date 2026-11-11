@@ -164,7 +164,8 @@ export async function handleTimesheets({ admin, user, body, reply }) {
       if (data.length < 500) break;
     }
     const timesheets = await withAdjustmentNames(admin, sheets);
-    return reply(200, { timesheets, hasMore: weeks.length > 3, nextBeforeWeek: selectedWeeks.at(-1) || null });
+    const { count, error: countError } = await admin.from('timesheets').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+    return reply(200, { timesheets, hasMore: weeks.length > 3, nextBeforeWeek: selectedWeeks.at(-1) || null, pendingCount: countError ? null : count });
   }
   if (body.action === 'review-timesheet') {
     if (typeof body.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.id) || !['approved', 'denied'].includes(body.status) || typeof body.submittedAt !== 'string') return reply(400, { error: 'Select a valid timesheet and review action.' });

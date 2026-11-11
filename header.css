@@ -5243,3 +5243,48 @@ main { padding-top:130px; }
 
 /* Equal outer spacing, independent of the timesheet's root font size. */
 .lds-header nav { left:16px; right:16px; top:16px; width:auto; max-width:none; transform:none; }
+
+/* Dashboard approval indicator, fixed to the header palette in both themes. */
+.lds-header .approval-indicator {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  color: #e2e8f0;
+  border-radius: 8px;
+}
+
+.lds-header .approval-indicator:hover {
+  background: #ffffff14;
+}
+
+.lds-header .approval-indicator:focus-visible {
+  outline: 2px solid #e2e8f0;
+  outline-offset: 3px;
+}
+
+.lds-header .approval-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 2px solid #1a202c;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #1a202c;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.lds-header .approval-badge-clear {
+  background: #22c55e;
+}

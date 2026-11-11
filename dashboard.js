@@ -11,6 +11,20 @@
   let workTypesLoaded = false;
   let savedCustomRates = {};
   let timesheetRows = [], timesheetBeforeWeek = null, timesheetRequest = 0, timesheetBusy = false;
+  let pendingTimesheetCount = null;
+  function showPendingCount(count) {
+    pendingTimesheetCount = Number.isSafeInteger(count) && count >= 0 ? count : null;
+    const indicator = $('#approvalIndicator');
+    const badge = $('#approvalBadge');
+    badge.hidden = pendingTimesheetCount === null;
+    badge.classList.toggle('approval-badge-clear', pendingTimesheetCount === 0);
+    badge.textContent = pendingTimesheetCount === 0 ? '\u2713' : String(pendingTimesheetCount ?? '');
+    const label = pendingTimesheetCount === null ? 'Timesheet approval count unavailable'
+      : pendingTimesheetCount === 0 ? 'No timesheets awaiting approval'
+      : `${pendingTimesheetCount} ${pendingTimesheetCount === 1 ? 'timesheet' : 'timesheets'} awaiting approval`;
+    indicator.title = label;
+    indicator.setAttribute('aria-label', label);
+  }
   const csvDialog = $('#csvDialog');
   let csvScope = null, csvOutput = null, csvRequest = 0;
   document.addEventListener('click', event => {
@@ -199,6 +213,7 @@
               sheet.status = nextStatus;
               sheet.revision++;
               sheet.denial_reason = reason;
+              if (pendingTimesheetCount !== null) showPendingCount(Math.max(0, pendingTimesheetCount - 1));
               renderTimesheets();
               $('#timesheetsMessage').textContent = nextStatus === 'approved' ? 'Timesheet approved.' : 'Timesheet denied.';
             } catch (error) { if (current === timesheetRequest) $('#timesheetsMessage').textContent = error.message; }
@@ -272,10 +287,16 @@
       timesheetRows = [...new Map([...(more ? timesheetRows : []), ...result.timesheets].map(sheet => [sheet.id, sheet])).values()]
         .sort((a, b) => b.week_start.localeCompare(a.week_start) || b.submitted_at.localeCompare(a.submitted_at));
       timesheetBeforeWeek = result.nextBeforeWeek;
+      showPendingCount(result.pendingCount);
       renderTimesheets();
       $('#moreTimesheets').hidden = !result.hasMore;
       $('#timesheetsMessage').textContent = timesheetRows.length ? '' : 'No submitted timesheets yet.';
-    } catch (error) { if (current === timesheetRequest) $('#timesheetsMessage').textContent = error.message; }
+    } catch (error) {
+      if (current === timesheetRequest) {
+        showPendingCount(null);
+        $('#timesheetsMessage').textContent = error.message;
+      }
+    }
     finally { if (current === timesheetRequest) { timesheetBusy = false; $('#refreshTimesheets').disabled = $('#moreTimesheets').disabled = false; } }
   }
   $('#refreshTimesheets').onclick = () => { void loadTimesheets(); };
@@ -636,6 +657,7 @@
     removalDialog.close();
     timesheetBusy = false;
     timesheetRows = [];
+    showPendingCount(null);
     timesheetBeforeWeek = null;
     $('#submittedTimesheets').replaceChildren();
     ++request;

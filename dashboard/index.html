@@ -7,7 +7,7 @@
     <title>LDS Staff &middot; Sign in</title>
     <meta name="description" content="Enter your daily start and end times, one week at a time.">
     <link rel="stylesheet" href="style.css?v=mobile-settings-1">
-    <link rel="stylesheet" href="header.css">
+    <link rel="stylesheet" href="header.css?v=approval-indicator-1">
   </head>
   <body data-page="dashboard">
     <div class="lds-header"><nav aria-label="Main navigation"
@@ -48,6 +48,13 @@
                 ></a>
               </div>
               <div class="staff-account" id="staffAccount" hidden>
+                <a id="approvalIndicator" class="approval-indicator" href="#submittedTimesheets" aria-label="Timesheet approvals loading" title="Timesheet approvals loading">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="4" y="4" width="16" height="17" rx="2"></rect>
+                    <path d="M8 2v4M16 2v4M4 9h16M8 13h3M8 17h3M15 13h1M15 17h1"></path>
+                  </svg>
+                  <span id="approvalBadge" class="approval-badge" aria-hidden="true" hidden></span>
+                </a>
                 <span class="staff-mobile-name" data-staff-name></span>
                 <button class="account-toggle" id="accountToggle" type="button" aria-label="Account options" aria-expanded="false" aria-controls="accountDetails">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
@@ -224,7 +231,7 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="time.js"></script>
-    <script src="dashboard.js?v=staff-removal-1"></script>
+    <script src="dashboard.js?v=approval-indicator-1"></script>
     <script src="auth.js?v=preserve-session-view-1"></script>
   </body>
 </html>
