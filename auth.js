@@ -11,6 +11,7 @@
   const alternateSignIn = document.querySelector('#alternateSignIn');
   const choices = document.querySelector('#signInChoices');
   const otpPanel = document.querySelector('#emailOtpPanel');
+  const passkeyPanel = document.querySelector('#passkeyPanel');
   const otpRequestForm = document.querySelector('#otpRequestForm');
   const otpVerifyForm = document.querySelector('#otpVerifyForm');
   const otpEmail = document.querySelector('#otpEmail');
@@ -31,6 +32,7 @@
   let sessionCheck = 0;
   let displayedIdentity;
   let displayedUserId = null;
+  let selectedMethod = 'password';
 
   const preferenceCookie = 'lds_sign_in_method';
   function preferredSignIn() {
@@ -84,30 +86,36 @@
   }
 
   function showSignInView(view) {
+    const previousMethod = selectedMethod;
+    if (view !== 'options') selectedMethod = view;
     form.hidden = view !== 'password';
     alternateSignIn.hidden = view === 'password';
-    choices.hidden = view === 'otp';
+    choices.hidden = view !== 'options';
     otpPanel.hidden = view !== 'otp';
+    passkeyPanel.hidden = view !== 'passkey';
     message.textContent = '';
     if (view === 'otp') {
-      otpEmail.value = email.value.trim();
-      otpRequestForm.hidden = false;
-      otpVerifyForm.hidden = true;
-      otpCode.value = '';
-      otpAddress = '';
-      otpEmail.focus();
+      if (previousMethod !== 'otp') {
+        otpEmail.value = email.value.trim() || otpEmail.value;
+        otpRequestForm.hidden = false;
+        otpVerifyForm.hidden = true;
+        otpCode.value = '';
+        otpAddress = '';
+      }
+      (otpVerifyForm.hidden ? otpEmail : otpCode).focus();
     } else if (view === 'password') email.focus();
-    else (preferredSignIn() === 'passkey' ? document.querySelector('#passkeySignIn') : document.querySelector('#emailOtpOption')).focus();
+    else if (view === 'passkey') document.querySelector('#passkeySignIn').focus();
+    else {
+      const labels = { password: 'email and password', otp: 'OTP', passkey: 'passkey' };
+      for (const method of Object.keys(labels)) document.querySelector(`#${method === 'otp' ? 'emailOtp' : method}Option`).hidden = method === selectedMethod;
+      document.querySelector('#backSignInOptions').textContent = `Back to ${labels[selectedMethod]}`;
+      choices.querySelector('button:not([hidden])').focus();
+    }
   }
 
   function showPreferredSignIn() {
-    const method = preferredSignIn();
-    const passkey = document.querySelector('#passkeySignIn');
-    const otp = document.querySelector('#emailOtpOption');
-    choices.prepend(method === 'passkey' ? passkey : otp);
-    passkey.classList.toggle('primary', method === 'passkey');
-    passkey.classList.toggle('outline', method !== 'passkey');
-    showSignInView(method === 'passkey' ? 'options' : method);
+    selectedMethod = 'password';
+    showSignInView(preferredSignIn());
   }
 
   function showSession(session) {
@@ -243,10 +251,18 @@
   });
 
   link.addEventListener('click', () => showSignInView('options'));
+  document.querySelectorAll('.more-sign-in').forEach(button => button.addEventListener('click', () => showSignInView('options')));
+  document.querySelector('#passwordOption').onclick = () => showSignInView('password');
   document.querySelector('#emailOtpOption').onclick = () => showSignInView('otp');
-  document.querySelector('#passwordSignIn').onclick = () => showSignInView('password');
-  document.querySelector('#backSignInOptions').onclick = () => showSignInView('options');
-  document.querySelector('#changeOtpEmail').onclick = () => showSignInView('otp');
+  document.querySelector('#passkeyOption').onclick = () => showSignInView('passkey');
+  document.querySelector('#backSignInOptions').onclick = () => showSignInView(selectedMethod);
+  document.querySelector('#changeOtpEmail').onclick = () => {
+    otpRequestForm.hidden = false;
+    otpVerifyForm.hidden = true;
+    otpCode.value = '';
+    otpAddress = '';
+    otpEmail.focus();
+  };
 
   async function sendOtp(address) {
     if (signingIn || Date.now() < resendAfter) return;
