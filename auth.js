@@ -32,6 +32,16 @@
   let displayedIdentity;
   let displayedUserId = null;
 
+  const preferenceCookie = 'lds_sign_in_method';
+  function preferredSignIn() {
+    const value = document.cookie.split('; ').find(item => item.startsWith(`${preferenceCookie}=`))?.slice(preferenceCookie.length + 1);
+    return ['password', 'otp', 'passkey'].includes(value) ? value : 'password';
+  }
+  function rememberSignIn(method) {
+    const secure = location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${preferenceCookie}=${method}; Max-Age=31536000; Path=${new URL('.', document.baseURI).pathname}; SameSite=Lax${secure}`;
+  }
+
   function closeAccountMenu() {
     account.dataset.open = 'false';
     accountToggle.setAttribute('aria-expanded', 'false');
@@ -87,7 +97,17 @@
       otpAddress = '';
       otpEmail.focus();
     } else if (view === 'password') email.focus();
-    else document.querySelector('#emailOtpOption').focus();
+    else (preferredSignIn() === 'passkey' ? document.querySelector('#passkeySignIn') : document.querySelector('#emailOtpOption')).focus();
+  }
+
+  function showPreferredSignIn() {
+    const method = preferredSignIn();
+    const passkey = document.querySelector('#passkeySignIn');
+    const otp = document.querySelector('#emailOtpOption');
+    choices.prepend(method === 'passkey' ? passkey : otp);
+    passkey.classList.toggle('primary', method === 'passkey');
+    passkey.classList.toggle('outline', method !== 'passkey');
+    showSignInView(method === 'passkey' ? 'options' : method);
   }
 
   function showSession(session) {
@@ -107,7 +127,7 @@
       panel.insertBefore(form, message);
     }
     if (!user) {
-      showSignInView('password');
+      showPreferredSignIn();
       passkeyDialog?.close();
       otpAddress = '';
       otpCode.value = '';
@@ -213,6 +233,7 @@
     message.textContent = 'Signing in...';
     try {
       const { error } = await client.auth.signInWithPassword({ email: email.value.trim(), password: password.value });
+      if (!error) rememberSignIn('password');
       message.textContent = error ? 'Unable to sign in. Check your email and password and try again.' : '';
     } catch {
       message.textContent = 'Could not reach sign in. Check your connection and try again.';
@@ -272,6 +293,7 @@
     message.textContent = 'Verifying sign-in code...';
     try {
       const { error } = await client.auth.verifyOtp({ email: otpAddress, token, type: 'email' });
+      if (!error) rememberSignIn('otp');
       message.textContent = error ? 'That code is invalid or expired. Try again or request a new code.' : '';
     } catch {
       message.textContent = 'Could not verify the code. Check your connection and try again.';
@@ -289,6 +311,7 @@
     message.textContent = 'Choose your saved passkey to sign in...';
     try {
       const { error } = await client.auth.signInWithPasskey();
+      if (!error) rememberSignIn('passkey');
       message.textContent = error ? 'Passkey sign-in was not completed. Try again or use another sign-in option.' : '';
     } catch {
       message.textContent = 'Passkey sign-in was not completed. Try again or use another sign-in option.';
@@ -335,7 +358,6 @@
       if (error) throw error;
       await resolveSession(null);
       message.textContent = 'You have signed out.';
-      email.focus();
     } catch {
       document.querySelector('#weekMessage').textContent = 'Could not sign out. Please try again.';
     } finally {

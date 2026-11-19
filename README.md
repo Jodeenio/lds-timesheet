@@ -146,6 +146,8 @@ Apply `supabase/migrations/202611110002_owner_timesheet_deletion.sql`, then depl
 
 ## Email OTP and passkey sign-in
 
+The browser remembers the last successful password, email OTP, or passkey sign-in in a one-year cookie and presents that method first next time. Other methods remain available. The cookie contains only the method, not account details or credentials; clearing cookies resets the default to password.
+
 The password screen now offers **More sign-in options**, which replaces its fields with **Sign in with email OTP** and **Sign in with passkey**. Email OTP has an email step, code verification, resend cooldown, and a return to password sign-in. Requests set `shouldCreateUser: false` so they cannot create uninvited accounts. Signed-in staff, admins and owners can open **Account settings > Sign in > Set up passkey**. On desktop, click the staff name in the header; on mobile, choose Account settings above Sign out in the header menu. Registration and sign-in use Supabase's native WebAuthn APIs, followed by the existing server-verified role routing.
 
 The browser SDK is pinned to 2.105.0, with passkey opt-in enabled. Supabase documents passkeys as experimental. The production relying party is configured for **lds-timesheet.vercel.app**; passkeys require HTTPS and are bound to that RP ID. Do not change it after users enrol without planning re-registration. Browser checks used mocked auth responses; real email delivery and device passkey ceremonies still need testing on the deployed HTTPS site.
